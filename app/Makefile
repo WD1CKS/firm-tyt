@@ -31,20 +31,30 @@ SRCS=	blink.c \
   ASFLAGS=	-Wa,-a
   REDIR=	> firm-tyt.lst
 .endif
-CC=	arm-none-eabi-gcc
+CC=		arm-none-eabi-gcc
+AR=		arm-none-eabi-ar rcu
 OBJCOPY=	arm-none-eabi-objcopy
+RANLIB=		arm-none-eabi-ranlib
 CPPFLAGS=	-DUSE_USB_OTG_FS -I../FreeRTOS/Source/include/ -I../FreeRTOS/ -I../FreeRTOS/Source/portable/GCC/ARM_CM4F -I../hw
 CFLAGS=		-g -fverbose-asm -O2 -std=gnu99 -mthumb -mcpu=cortex-m4 -mthumb-interwork -mfloat-abi=hard -mfpu=fpv4-sp-d16
-LDFLAGS=	-Wl,--script=stm32f405_flash_app.lds
+LDFLAGS=	-Wl,--script=stm32f405_flash_app.lds -L.
+.export
+LDLIBS=		-llua
 
 firm-tyt.bin: firm-tyt.img
 	../md380tools/md380-fw --wrap $> $@
 
+.PHONY: lua.a
+liblua.a:
+	$(MAKE) -C lua/src liblua.a
+	ln -fs lua/src/liblua.a .
+
 firm-tyt.img: firm-tyt.elf
 	$(OBJCOPY) -O binary $> $@
 
-firm-tyt.elf: $(SRCS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(ASFLAGS) $(LDFLAGS) $(SRCS) -o $@ $(REDIR)
+firm-tyt.elf: $(SRCS) liblua.a
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(ASFLAGS) $(LDFLAGS) $(SRCS) $(LDLIBS) -o $@ $(REDIR)
 
 clean:
-	-rm firm-tyt.elf firm-tyt.bin firm-tyt.img firm-tyt.lst
+	$(MAKE) -C lua/src clean
+	-rm firm-tyt.elf firm-tyt.bin firm-tyt.img firm-tyt.lst liblua.a
