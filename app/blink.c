@@ -63,6 +63,10 @@ static void output_main(void* machtnichts) {
 	usb_cdc_init();
 
 	input_setup(pin_e11);
+	input_setup(pin_ecn0);
+	input_setup(pin_ecn1);
+	input_setup(pin_ecn2);
+	input_setup(pin_ecn3);
 
 	for(;;) {
 		// PTT is active low
