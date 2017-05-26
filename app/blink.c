@@ -8,7 +8,7 @@
 #include "gpio.h"
 #include "usb_cdc.h"
 
-static void sleep(uint32_t);
+static void sleep(void);
 
 static void output_main(void*);
 static void red_main(void*);
@@ -69,7 +69,7 @@ static void output_main(void* machtnichts) {
 		int ptt = !pin_read(pin_e11);
 		int red = get_red_state();
 		led_set(red, ptt);
-		sleep(50);
+		vTaskDelay(50);
 	}
 }
 
@@ -77,13 +77,23 @@ static void red_main(void* machtnichts) {
 
 	for(;;){
 		set_red_state(0);
-		sleep(500);
+		sleep();
 		set_red_state(1);
-		sleep(500);
+		sleep();
 	}
 }
 
-static void sleep(uint32_t ms) {
-	vTaskDelay(ms);
-}
+static void sleep(void) {
+	TickType_t delay = 0;
 
+	if (pin_read(pin_ecn0))
+		delay |= 1<<0;
+	if (pin_read(pin_ecn1))
+		delay |= 1<<1;
+	if (pin_read(pin_ecn2))
+		delay |= 1<<2;
+	if (pin_read(pin_ecn3))
+		delay |= 1<<3;
+	delay <<= 6;
+	vTaskDelay(delay);
+}

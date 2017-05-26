@@ -342,9 +342,11 @@ extern struct pin _pin_b9;
 
 extern struct pin _pin_b10;
 #define pin_b10 (&_pin_b10)
+#define pin_ecn2 pin_b10
 
 extern struct pin _pin_b11;
 #define pin_b11 (&_pin_b11)
+#define pin_ecn3 pin_b11
 
 extern struct pin _pin_b12;
 #define pin_b12 (&_pin_b12)
@@ -474,9 +476,11 @@ extern struct gpio _gpio_e;
 
 extern struct pin _pin_e0;
 #define pin_e0 (&_pin_e0)
+#define pin_green_led pin_e0
 
 extern struct pin _pin_e1;
 #define pin_e1 (&_pin_e1)
+#define pin_red_led pin_e1
 
 extern struct pin _pin_e2;
 #define pin_e2 (&_pin_e2)
@@ -507,6 +511,7 @@ extern struct pin _pin_e10;
 
 extern struct pin _pin_e11;
 #define pin_e11 (&_pin_e11)
+#define pin_ptt pin_e11
 
 extern struct pin _pin_e12;
 #define pin_e12 (&_pin_e12)
@@ -516,9 +521,11 @@ extern struct pin _pin_e13;
 
 extern struct pin _pin_e14;
 #define pin_e14 (&_pin_e14)
+#define pin_ecn0 pin_e14
 
 extern struct pin _pin_e15;
 #define pin_e15 (&_pin_e15)
+#define pin_ecn1 pin_e15
 
 
 /* GPIOF **********************************************************************/
