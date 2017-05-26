@@ -24,17 +24,23 @@ SRCS=	blink.c \
 	../hw/system_stm32f4xx.c \
 	../hw/startup_stm32f4xx.s
 
+# This is a terrible thing to do...
+.ifdef GENLIST
+  ASFLAGS=	-Wa,-a
+  REDIR=	> firm-tyt.lst
+.endif
 CC=	arm-none-eabi-gcc
 OBJCOPY=	arm-none-eabi-objcopy
 CPPFLAGS=	-DUSE_USB_OTG_FS -I../FreeRTOS/Source/include/ -I../FreeRTOS/ -I../FreeRTOS/Source/portable/GCC/ARM_CM4F -I../hw
-CFLAGS=		-O2 -std=gnu99 -mthumb -mcpu=cortex-m4 -mthumb-interwork -mfloat-abi=hard -mfpu=fpv4-sp-d16
+CFLAGS=		-g -fverbose-asm -O2 -std=gnu99 -mthumb -mcpu=cortex-m4 -mthumb-interwork -mfloat-abi=hard -mfpu=fpv4-sp-d16
 LDFLAGS=	-Wl,--script=stm32f405_flash_app.lds
 
 firm-tyt.bin: firm-tyt.elf
 	$(OBJCOPY) -O binary $> $@
 
 firm-tyt.elf: $(SRCS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(SRCS) -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(ASFLAGS) $(LDFLAGS) $(SRCS) -o $@ $(REDIR)
 
 clean:
-	rm firm-tyt.elf firm-tyt.bin
+	@-rm firm-tyt.elf firm-tyt.bin
+	@-rm firm-tyt.lst
