@@ -35,12 +35,14 @@ CPPFLAGS=	-DUSE_USB_OTG_FS -I../FreeRTOS/Source/include/ -I../FreeRTOS/ -I../Fre
 CFLAGS=		-g -fverbose-asm -O2 -std=gnu99 -mthumb -mcpu=cortex-m4 -mthumb-interwork -mfloat-abi=hard -mfpu=fpv4-sp-d16
 LDFLAGS=	-Wl,--script=stm32f405_flash_app.lds
 
-firm-tyt.bin: firm-tyt.elf
+firm-tyt.bin: firm-tyt.img
+	../md380tools/md380-fw --wrap $> $@
+
+firm-tyt.img: firm-tyt.elf
 	$(OBJCOPY) -O binary $> $@
 
 firm-tyt.elf: $(SRCS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(ASFLAGS) $(LDFLAGS) $(SRCS) -o $@ $(REDIR)
 
 clean:
-	@-rm firm-tyt.elf firm-tyt.bin
-	@-rm firm-tyt.lst
+	-rm firm-tyt.elf firm-tyt.bin firm-tyt.img firm-tyt.lst
