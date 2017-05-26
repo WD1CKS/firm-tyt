@@ -15,14 +15,13 @@
 //      SRCS += font_8_8.o
 //  
 
-#include "config.h"
-
 #include <stm32f4xx.h>
 #include <stdint.h>
 #include <string.h>       // memset(), ...
-#include "printf.h"       // Kustaa Nyholm's tinyprintf (printf.c)
-#include "md380.h"
-#include "irq_handlers.h" // hardware-specific stuff like "LCD_CS_LOW", etc
+#include <gpio.h>
+//#include "printf.h"       // Kustaa Nyholm's tinyprintf (printf.c)
+//#include "md380.h"
+//#include "irq_handlers.h" // hardware-specific stuff like "LCD_CS_LOW", etc
 #include "lcd_driver.h"   // constants + API prototypes for the *alternative* LCD driver (no "gfx")
 
 // Regardless of the command line, let the compiler show ALL warnings from here on:
@@ -144,7 +143,7 @@ int LCD_SetOutputRect( int x1, int y1, int x2, int y2 )
 #endif
 
 
-  LCD_CS_LOW;   // Activate LCD chip select
+  pin_reset(pin_lcd_cs);   // Activate LCD chip select
   LCD_ShortDelay();
   LCD_WriteCommand( 0x2A ); // ST7735 DS V2.1 page 100 : "CASET" ....
     // ... but beware: 'columns' and 'rows' from the ST7735's 
@@ -205,7 +204,7 @@ void LCD_SetPixelAt( int x, int y, uint16_t wColor )
   //               |<--------------- 1.93 us --------------->|
   //                   ->| |<- t_WR_low ~ 70ns             
   //             
-  LCD_CS_LOW;  // Activate LCD chip select
+  pin_reset(pin_lcd_cs);  // Activate LCD chip select
   asm("NOP");  // (a) pro-forma delay between falling edge on LCD_CS 
                //     and the first low-active LCD_WR .
   LCD_WriteCommand( 0x2A ); // (1) ST7735 DS V2.1 page 100 : "CASET" ....
@@ -235,7 +234,7 @@ void LCD_SetPixelAt( int x, int y, uint16_t wColor )
   LCD_WritePixels( wColor,1 ); // (8,9) send 16-bit colour in two 8-bit writes
   LCD_ShortDelay(); // (b) short delay before de-selecting the LCD controller .
   // Without this, there were erroneous red pixels on the screen during update.
-  LCD_CS_HIGH;      // de-assert LCD chip select
+  pin_set(pin_lcd_cs);      // de-assert LCD chip select
 
 
 } // end LCD_SetPixelAt()
@@ -263,7 +262,7 @@ void LCD_FillRect( // Draws a frame-less, solid, filled rectangle
 
   LCD_ShortDelay(); // short delay before de-selecting the LCD controller .
   // Without this, there were occasional erratic pixels on the screen during update.
-  LCD_CS_HIGH; // de-assert LCD chip select (Tytera does this after EVERY pixel. We don't.)
+  pin_set(pin_lcd_cs); // de-assert LCD chip select (Tytera does this after EVERY pixel. We don't.)
 } // end LCD_FillRect()
 
 //---------------------------------------------------------------------------
@@ -380,100 +379,6 @@ uint8_t *LCD_GetFontPixelPtr_8x8( uint8_t c)
 } // end LCD_GetFontPixelPtr_8x8()
 
 //---------------------------------------------------------------------------
-uint8_t *LCD_GetFontPixelPtr_6x12( uint8_t c)
-  // Retrieves the address of a character's font bitmap, 6 * 12 pixels .
-  //  [in]     7-bit ASCII character, codes #32 to #127 .
-  //           Codes <= 31 are reserved for special purposes,
-  //           for example to create user-defined chars 'on the fly'.
-  //  [return] pointer to the first byte of the character's bitmap.
-  //           Never returns NULL (but a 'replacement' if c is invalid).
-{
-  if( c<32 || c>127 )
-   {  c=32;
-   }
-
-  //-------------------------------------------------------------------------
-  // How to find the PIXEL MATRIX for a given character code ?
-  //
-  // At first sight, the addresses of the 'small' font bitmaps
-  //    appeared to be the same
-  // in   patches/d13.020/replacement-font-small-latin.pbm ,
-  //      patches/s13.020/replacement-font-small-latin.pbm ,
-  //   and  patches/3.020/replacement-font-small-latin.pbm :
-  // 
-  // > P1
-  // > # MD380 address: 0x80614d8 ------------------------------>-----------,
-  // > # MD380 checksum: 823257338                                          |
-  // > 6 12  (..followed by 12 * '000000' binary for chr(32)=SPACE )        |
-  // > P1                                                                   |
-  // > # MD380 address: 0x80614e0                                           |
-  // > # MD380 checksum: -1625523830                                        |
-  // > 6 12  (.. followed by the second bitmap, chr(33) = '!'               |
-  //                                                                        |
-  // But in firmware D13.020, 0x80614d8 wasn't a font but executable code . |
-  // The addresses in replacement-font-small-latin.pbm obviously apply to   |
-  // firmware D002.032 only, where the first char-HEADERS (8bytes/header)   |
-  // contained the following :                                              |
-  // > [0x080614a8 0% 448 ../../firmware/unwrapped/D002.032.img]> pxw       |
-  // > 0x080614b8: 0x40910220 0x40d04041 0x40414090 0x00004770              |
-  // > 0x080614c8: 0x00010606 0x080fb668 0x00010606 0x080fb680              |
-  // > 0x080614d8: 0x00010606 0x080fb68c 0x00010606 0x080fb698 (' ','!') <--'
-  //                           | \_____|___delta=12____|_____/----------------,
-  //                           '-------------------------------points to..--, |
-  // > 0x080614e8: 0x00010606 0x080fb6a4 0x00010606 0x080fb6b0              | |
-  // > 0x080614f8: 0x00010606 0x080fb6bc 0x00010606 0x080fb6c8              | |
-  // > 0x08061508: 0x00010606 0x080fb6d4 0x00010606 0x080fb6e0 ......       | |
-  //                                                                        | |
-  // Thus '0x80614d8' (in replacement-font-small-latin.pbm) isn't the       | |
-  // address of the byte with the first six pixels of the space character,  | |
-  // but the address of an 8-byte structure (an array, actually)            | |
-  // with a pointer to the pixel data, here shown for ' ' and '!' :         | |
-  // > [0x080fb68c 0% 448 ../../firmware/unwrapped/D002.032.img]> pxw       | |
-  //                ________________________________________________________| |
-  //               | 12 byte PIXEL MATRIX, here: space character              |
-  //               |                                 _________________________|
-  //               |                                | next 12-byte matrix ("!")
-  //              \|/                              \|/ 
-  // > 0x080fb68c  0x00000000 0x00000000 0x00000000 0x20200000
-  //               |___ 12 'zero' bytes : SPACE __|
-  // > 0x080fb69c  0x20202020 0x00002000 0x50502800 0x00000000
-  // > 0x080fb6ac  0x00000000 0x28280000 0xfc5028fc 0x00005050
-  // > 0x080fb6bc  0xa8782000 0x283060a0 0x0020f0a8 0xa8480000
-  // > 0x080fb6cc  0x342850b0 0x00004854 0x50200000 0xa8a87850
-#if defined(FW_D02_032)
-# define FONT_MATRIX_FIRST_ADDR 0x080FB68C /* see long explanation above */ 
-#endif
-  // For newer firmware, the 'small font' bitmaps can easily be found
-  // by searching for the above patterns, e.g. for 0x50502800 with a text editor
-  // in the monster-HEX-DUMP created by Radare2 (pxw 0xF4000 @0x0800c000 >> hexdump.txt) : 
-#if defined(FW_D13_020)
-# define FONT_MATRIX_FIRST_ADDR 0x080F9F8C /* 'small' font matrix in D13.020 */ 
-  // In the disassembled FW D13.020, "font_small_table_at_offset_0x18" was:
-  // > [0x080faa48 0% 448 ../../firmware/unwrapped/D013.020.img]
-  // > pxw @ font_small_table_at_offset_0x18
-  // > 0x080faa48:  0x000a000a 0x080633f8 0x080faa3c 0xf7fef7a1
-  //                           |________|
-  //       ,--------<<<<------------'
-  //       |       points to a table with 8 bytes per entry:
-  //      \|/
-  // > 0x080633f8: 0x00010606 0x080f9f68 0x00010606 0x080f9f80 (<- not sure what these are)
-  // > 0x08063408: 0x00010606 0x080f9f8c 0x00010606 0x080f9f98
-  //                          |___' '__|            |__'!'___|
-  //                                    \_delta=12_/
-#endif // FW_D13_020 ?
-#if defined(FW_S13_020)
-# define FONT_MATRIX_FIRST_ADDR 0x080FAE4C 
-#endif // FW_S13_020 ?
-#ifdef FONT_MATRIX_FIRST_ADDR
-  return (uint8_t*)(FONT_MATRIX_FIRST_ADDR + 12 * (int)(c-32) );
-#else
-# error "Please add support for the new firmware here !"
-  // (see explanation above how to 'find' the address of the font's first bitmap)
-#endif
-
-} // end LCD_GetFontPixelPtr_6x12()
-
-//---------------------------------------------------------------------------
 int LCD_GetFontHeight( int font_options )
 {
   int font_height = ( font_options & LCD_OPT_FONT_8x8 ) ? 8 : 12;
@@ -533,15 +438,9 @@ int LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
   int x_zoom = ( options & LCD_OPT_DOUBLE_WIDTH ) ? 2 : 1;
   int y_zoom = ( options & LCD_OPT_DOUBLE_HEIGHT) ? 2 : 1;
   int font_width,font_height,x2,y2;
-  if( options & LCD_OPT_FONT_8x8 )  // use the 8*8 pixel font ?
-   { pbFontMatrix = LCD_GetFontPixelPtr_8x8(c);
-     font_width = font_height = 8;
-   }
-  else // use Tytera's 6 * 12 pixel font (with characters #32 .. 127 only)
-   { pbFontMatrix = LCD_GetFontPixelPtr_6x12(c);
-     font_width  = 6;
-     font_height = 12;
-   }
+  // use the 8*8 pixel font ?
+  pbFontMatrix = LCD_GetFontPixelPtr_8x8(c);
+  font_width = font_height = 8;
   x2 = x + x_zoom*font_width-1;
   y2 = y + y_zoom*font_height-1;
   if(x2 >=LCD_SCREEN_WIDTH )
@@ -589,7 +488,7 @@ int LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
       }
    }
   LCD_ShortDelay(); // short delay before de-selecting the LCD controller (see LCD_FillRect)
-  LCD_CS_HIGH; // de-assert LCD chip select (Tytera does this after EVERY pixel. We don't.)
+  pin_set(pin_lcd_cs); // de-assert LCD chip select (Tytera does this after EVERY pixel. We don't.)
   return x2+1; // pixel coord for printing the NEXT character
 } // end LCD_DrawCharAt()
 
@@ -661,6 +560,7 @@ int LCD_DrawString( lcd_context_t *pContext, char *cp )
   return x;
 } // end LCD_DrawString()
 
+#ifdef notyet
 //---------------------------------------------------------------------------
 int LCD_Printf( lcd_context_t *pContext, char *fmt, ... )
   // Almost the same as LCD_DrawString,
@@ -675,7 +575,7 @@ int LCD_Printf( lcd_context_t *pContext, char *fmt, ... )
   szTemp[sizeof(szTemp)-1] = '\0';     
   return LCD_DrawString( pContext, szTemp );
 } // end LCD_Printf()
-
+#endif
 
 
 /* EOF < md380tools/applet/src/lcd_driver.c > */
