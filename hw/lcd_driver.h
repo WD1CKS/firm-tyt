@@ -142,9 +142,11 @@ int LCD_DrawString( lcd_context_t *pContext, char *cp );
   // Draws a zero-terminated ASCII string. 
   // Returns the graphic coordinate (x) to print the next character .
 
+#ifdef notyet
 int LCD_Printf( lcd_context_t *pContext, char *fmt, ... );
   // Almost the same as LCD_DrawString,
   // but with all goodies supported by tinyprintf .
+#endif
 
 
 /* EOF < md380tools/applet/src/lcd_driver.h > */

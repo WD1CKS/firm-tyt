@@ -19,7 +19,9 @@
 #include <stdint.h>
 #include <string.h>       // memset(), ...
 #include <gpio.h>
-//#include "printf.h"       // Kustaa Nyholm's tinyprintf (printf.c)
+#ifdef notyet
+#include "printf.h"       // Kustaa Nyholm's tinyprintf (printf.c)
+#endif
 //#include "md380.h"
 //#include "irq_handlers.h" // hardware-specific stuff like "LCD_CS_LOW", etc
 #include "lcd_driver.h"   // constants + API prototypes for the *alternative* LCD driver (no "gfx")
