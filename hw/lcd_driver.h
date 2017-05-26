@@ -33,15 +33,11 @@
 
 // Bitwise combineable 'options' for some text drawing functions:
 #define LCD_OPT_NORMAL_OUTPUT 0x00 // "nothing special" (use default font, not magnified)
-#define LCD_OPT_FONT_6x12     0x00 // use 6x12 pixel font
-#define LCD_OPT_FONT_8x8      0x01 // use 8x8 pixel font
 #define LCD_OPT_DOUBLE_WIDTH  0x02 // double-width character output
 #define LCD_OPT_DOUBLE_HEIGHT 0x04 // double-height character output
 #define LCD_OPT_RESERVED_FONT 0x08 // reserved for a future font, possibly "proportional"
-#define LCD_OPT_FONT_8x16  (LCD_OPT_FONT_8x8|LCD_OPT_DOUBLE_HEIGHT)
-#define LCD_OPT_FONT_16x16 (LCD_OPT_FONT_8x8|LCD_OPT_DOUBLE_WIDTH|LCD_OPT_DOUBLE_HEIGHT)
-#define LCD_OPT_FONT_12x12 (LCD_OPT_FONT_6x12|LCD_OPT_DOUBLE_WIDTH)
-#define LCD_OPT_FONT_12x24 (LCD_OPT_FONT_6x12|LCD_OPT_DOUBLE_WIDTH|LCD_OPT_DOUBLE_HEIGHT)
+#define LCD_OPT_FONT_8x16  (LCD_OPT_DOUBLE_HEIGHT)
+#define LCD_OPT_FONT_16x16 (LCD_OPT_DOUBLE_WIDTH|LCD_OPT_DOUBLE_HEIGHT)
 
 //---------------------------------------------------------------------------
 // Structures for the 'mid level' LCD drawing functions.
@@ -113,10 +109,6 @@ uint8_t *LCD_GetFontPixelPtr_8x8( uint8_t c);
   // Unlike the fonts in Tytera's firmware, the 8*8-pixel font
   // supports all 256 fonts from the ancient 'codepage 437',
   // and can thus be used to draw tables, boxes, etc, as in the old days.
-
-uint8_t *LCD_GetFontPixelPtr_6x12( uint8_t c);
-  // Retrieves the address of a character's font bitmap, 6 * 12 pixels .
-  // Rarely used by the application, but required by LCD_DrawCharAt() .
 
 uint32_t LCD_NativeColorToRGB( uint16_t native_colour );
 uint16_t LCD_RGBToNativeColor( uint32_t u32RGB );

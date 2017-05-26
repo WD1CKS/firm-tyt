@@ -381,7 +381,7 @@ uint8_t *LCD_GetFontPixelPtr_8x8( uint8_t c)
 //---------------------------------------------------------------------------
 int LCD_GetFontHeight( int font_options )
 {
-  int font_height = ( font_options & LCD_OPT_FONT_8x8 ) ? 8 : 12;
+  int font_height = 8;
   if( font_options & LCD_OPT_DOUBLE_HEIGHT )
    {  font_height *= 2;
    }
@@ -391,7 +391,7 @@ int LCD_GetFontHeight( int font_options )
 //---------------------------------------------------------------------------
 int LCD_GetCharWidth( int font_options, char c )
 {
-  int width = ( font_options & LCD_OPT_FONT_8x8 ) ? 8 : 6;
+  int width = 8;
   // As long as all fonts supported HERE are fixed-width, 
   // ignore the character code ('c')  without a warning :
   (void)c;
