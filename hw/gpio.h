@@ -440,6 +440,7 @@ extern struct pin _pin_d5;
 
 extern struct pin _pin_d6;
 #define pin_d6 (&_pin_d6)
+#define pin_lcd_cs pin_d6
 
 extern struct pin _pin_d7;
 #define pin_d7 (&_pin_d7)
@@ -505,9 +506,11 @@ extern struct pin _pin_e8;
 
 extern struct pin _pin_e9;
 #define pin_e9 (&_pin_e9)
+#define pin_top pin_e9
 
 extern struct pin _pin_e10;
 #define pin_e10 (&_pin_e10)
+#define pin_bottom pin_e10
 
 extern struct pin _pin_e11;
 #define pin_e11 (&_pin_e11)
