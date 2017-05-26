@@ -7,12 +7,14 @@
 #include "led.h"
 #include "gpio.h"
 #include "usb_cdc.h"
+#include "lcd_driver.h"
 
 static void sleep(void);
 
 static void output_main(void*);
 static void red_main(void*);
 static SemaphoreHandle_t red_monitor;
+static lcd_context_t lcd;
 
 int main (void) {
 	red_monitor = xSemaphoreCreateMutex();
@@ -51,6 +53,10 @@ static void led_set(int red, int green) {
 	SEND_STR(red?red_on:red_off);
 	SEND_STR(green?green_on:green_off);
 	#undef SEND_STR
+	lcd.x = 0;
+	lcd.y = 0;
+	LCD_DrawString(&lcd, red?red_on:red_off);
+	LCD_DrawString(&lcd, green?green_on:green_off);
 }
 
 static void input_setup(struct pin *pin) {
@@ -79,6 +85,9 @@ static void output_main(void* machtnichts) {
 	input_setup(pin_ecn2);
 	input_setup(pin_ecn3);
 	output_setup(pin_lcd_bl);
+	LCD_InitContext(&lcd);
+	lcd.bg_color = LCD_COLOR_WHITE;
+	lcd.foreground= LCD_COLOR_BLACK;
 
 	for(;;) {
 		// PTT is active low
