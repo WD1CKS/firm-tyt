@@ -24,7 +24,7 @@
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS 5
 
 /* Memory allocation related definitions. */
-#define configSUPPORT_STATIC_ALLOCATION		1
+#define configSUPPORT_STATIC_ALLOCATION		0
 #define configSUPPORT_DYNAMIC_ALLOCATION	1
 #define configTOTAL_HEAP_SIZE			(75 * 1024)
 #define configAPPLICATION_ALLOCATED_HEAP	0
@@ -52,6 +52,14 @@
 #define configTIMER_TASK_STACK_DEPTH		configMINIMAL_STACK_SIZE
 
 /* Interrupt nesting behaviour configuration. */
+/* Cortex-M specific definitions. */
+#ifdef __NVIC_PRIO_BITS
+	/* __BVIC_PRIO_BITS will be specified when CMSIS is being used. */
+	#define configPRIO_BITS       		__NVIC_PRIO_BITS
+#else
+	#define configPRIO_BITS       		4        /* 15 priority levels */
+#endif
+
 /*
  * The lowest interrupt priority that can be used in a call to a "set priority"
  * function.

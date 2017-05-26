@@ -77,7 +77,7 @@ void VCP_Init(void);
 uint16_t VCP_Write(uint8_t *buf, uint32_t len);
 
 /** Read data from the VCP receive queue. */
-int32_t VCP_Read(uint8_t *buf, uint32_t len, portTickType timeout);
+int32_t VCP_Read(uint8_t *buf, uint32_t len, TickType_t timeout);
 
 #endif /* __USBD_CDC_VCP_H */
 

@@ -58,7 +58,7 @@ extern uint32_t APP_Rx_ptr_in;    /* Increment this pointer or roll it back to
 #define RX_QUEUE_LEN 128
 
 /** Receive buffer read by "VCP_Read". */
-xQueueHandle g_rx_queue;
+QueueHandle_t g_rx_queue;
 
 /* Private function prototypes -----------------------------------------------*/
 static uint16_t VCP_DriverInit (void);
@@ -219,7 +219,7 @@ void VCP_Init(void)
   g_rx_queue = xQueueCreate(RX_QUEUE_LEN, 1);
 }
 
-int32_t VCP_Read(uint8_t *buf, uint32_t len, portTickType timeout)
+int32_t VCP_Read(uint8_t *buf, uint32_t len, TickType_t timeout)
 {
   int32_t i;
 
