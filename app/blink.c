@@ -87,7 +87,7 @@ static void output_main(void* machtnichts) {
 	output_setup(pin_lcd_bl);
 	LCD_InitContext(&lcd);
 	lcd.bg_color = LCD_COLOR_WHITE;
-	lcd.foreground= LCD_COLOR_BLACK;
+	lcd.fg_color = LCD_COLOR_BLACK;
 
 	for(;;) {
 		// PTT is active low
