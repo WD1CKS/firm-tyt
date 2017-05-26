@@ -22,7 +22,9 @@ SRCS=	blink.c \
 	../FreeRTOS/Source/queue.c \
 	os_interface.c \
 	../hw/system_stm32f4xx.c \
-	../hw/startup_stm32f4xx.s
+	../hw/startup_stm32f4xx.s \
+	../hw/lcd_driver.c \
+	fonts/font_8_8.c
 
 # This is a terrible thing to do...
 .ifdef GENLIST
