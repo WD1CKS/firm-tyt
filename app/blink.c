@@ -39,6 +39,8 @@ static int  get_red_state() {
 
 static void led_set(int red, int green) {
 	red_led(red);
+	if (!red)
+		pin_set(pin_lcd_bl);
 	green_led(green);
 
 	const char red_on[] = "red on,  ";
@@ -57,6 +59,15 @@ static void input_setup(struct pin *pin) {
 	pin_set_pupd(pin, PIN_PUPD_NONE);
 }
 
+static void output_setup(struct pin *pin) {
+	pin_enable(pin);
+	pin_set_mode(pin, PIN_MODE_OUTPUT);
+	pin_set_otype(pin, PIN_TYPE_PUSHPULL);
+	pin_set_ospeed(pin, PIN_SPEED_2MHZ);
+	pin_set_pupd(pin, PIN_PUPD_NONE);
+	pin_reset(pin);
+}
+
 static void output_main(void* machtnichts) {
 
 	led_setup();
@@ -67,6 +78,7 @@ static void output_main(void* machtnichts) {
 	input_setup(pin_ecn1);
 	input_setup(pin_ecn2);
 	input_setup(pin_ecn3);
+	output_setup(pin_lcd_bl);
 
 	for(;;) {
 		// PTT is active low

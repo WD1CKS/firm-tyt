@@ -386,6 +386,7 @@ extern struct pin _pin_c5;
 
 extern struct pin _pin_c6;
 #define pin_c6 (&_pin_c6)
+#define pin_lcd_bl pin_c6
 
 extern struct pin _pin_c7;
 #define pin_c7 (&_pin_c7)
