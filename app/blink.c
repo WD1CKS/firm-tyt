@@ -88,16 +88,12 @@ static void red_main(void* machtnichts) {
 }
 
 static void sleep(void) {
-	TickType_t delay = 0;
+	TickType_t delay;
 
-	if (pin_read(pin_ecn0))
-		delay |= 1<<0;
-	if (pin_read(pin_ecn1))
-		delay |= 1<<1;
-	if (pin_read(pin_ecn2))
-		delay |= 1<<2;
-	if (pin_read(pin_ecn3))
-		delay |= 1<<3;
-	delay <<= 6;
+	delay = (pin_read(pin_ecn0) << 6) |
+		(pin_read(pin_ecn1) << 7) |
+		(pin_read(pin_ecn2) << 8) |
+		(pin_read(pin_ecn3) << 9);
+
 	vTaskDelay(delay);
 }
