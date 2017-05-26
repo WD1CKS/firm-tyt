@@ -405,7 +405,7 @@ int LCD_GetCharWidth( int font_options, char c )
 } // end LCD_GetCharWidth()
 
 //---------------------------------------------------------------------------
-int LCD_GetTextWidth( int font_options, char *pszText )
+int LCD_GetTextWidth( int font_options, const char *pszText )
 { 
   int text_width = 0;
   if( pszText != NULL )
@@ -421,7 +421,7 @@ int LCD_GetTextWidth( int font_options, char *pszText )
 
 //---------------------------------------------------------------------------
 int LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
-        char c,            // [in] character code (ASCII)
+        const char c,      // [in] character code (ASCII)
         int x, int y,      // [in] pixel coordinate
         uint16_t fg_color, // [in] foreground colour (BGR565)
         uint16_t bg_color, // [in] background colour (BGR565)
@@ -504,7 +504,7 @@ void LCD_InitContext( lcd_context_t *pContext )
 } // end LCD_InitContext()
 
 //---------------------------------------------------------------------------
-int LCD_DrawString( lcd_context_t *pContext, char *cp )
+int LCD_DrawString( lcd_context_t *pContext, const char *cp )
   // Draws a zero-terminated ASCII string. Should be simple but versatile. 
   //  [in]  pContext, especially pContext->x,y = graphic output cursor .
   //        pContext->x1,x1,x2,y2 = clipping area (planned) .
@@ -527,7 +527,7 @@ int LCD_DrawString( lcd_context_t *pContext, char *cp )
   int x = pContext->x;
   int y = pContext->y;
   unsigned char c;
-  unsigned char *cp2;
+  const unsigned char *cp2;
   while( (c=*cp++) != 0 )
    { switch(c)
       { case '\r' :  // carriage return : almost the same as 'new line', but..
@@ -564,7 +564,7 @@ int LCD_DrawString( lcd_context_t *pContext, char *cp )
 
 #ifdef notyet
 //---------------------------------------------------------------------------
-int LCD_Printf( lcd_context_t *pContext, char *fmt, ... )
+int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... )
   // Almost the same as LCD_DrawString,
   // but with all goodies supported by tinyprintf .
   // Total length of the output should not exceed 80 characters.

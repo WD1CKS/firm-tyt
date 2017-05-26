@@ -125,7 +125,7 @@ uint16_t LCD_GetGoodContrastTextColor( uint16_t backgnd_color );
 
 int LCD_GetFontHeight(int font_options );
 int LCD_GetCharWidth( int font_options, char c );
-int LCD_GetTextWidth( int font_options, char *pszText );
+int LCD_GetTextWidth( int font_options, const char *pszText );
 
 int LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
         char c,            // [in] character code (ASCII)
@@ -138,12 +138,12 @@ int LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
 void LCD_InitContext( lcd_context_t *pContext );
   // Clears the struct and sets the output clipping window to 'full screen'.
 
-int LCD_DrawString( lcd_context_t *pContext, char *cp ); 
+int LCD_DrawString( lcd_context_t *pContext, const char *cp ); 
   // Draws a zero-terminated ASCII string. 
   // Returns the graphic coordinate (x) to print the next character .
 
 #ifdef notyet
-int LCD_Printf( lcd_context_t *pContext, char *fmt, ... );
+int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... );
   // Almost the same as LCD_DrawString,
   // but with all goodies supported by tinyprintf .
 #endif
