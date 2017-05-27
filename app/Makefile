@@ -24,7 +24,8 @@ SRCS=	blink.c \
 	../hw/system_stm32f4xx.c \
 	../hw/startup_stm32f4xx.s \
 	../hw/lcd_driver.c \
-	fonts/font_8_8.c
+	fonts/font_8_8.c \
+	stubs.c
 
 # This is a terrible thing to do...
 .ifdef GENLIST
@@ -35,11 +36,11 @@ CC=		arm-none-eabi-gcc
 AR=		arm-none-eabi-ar rcu
 OBJCOPY=	arm-none-eabi-objcopy
 RANLIB=		arm-none-eabi-ranlib
-CPPFLAGS=	-DUSE_USB_OTG_FS -I../FreeRTOS/Source/include/ -I../FreeRTOS/ -I../FreeRTOS/Source/portable/GCC/ARM_CM4F -I../hw
+CPPFLAGS=	-DUSE_USB_OTG_FS -I../FreeRTOS/Source/include/ -I../FreeRTOS/ -I../FreeRTOS/Source/portable/GCC/ARM_CM4F -I../hw -Ilua/src
 CFLAGS=		-g -fverbose-asm -O2 -std=gnu99 -mthumb -mcpu=cortex-m4 -mthumb-interwork -mfloat-abi=hard -mfpu=fpv4-sp-d16
 LDFLAGS=	-Wl,--script=stm32f405_flash_app.lds -L.
 .export
-LDLIBS=		-llua
+LDLIBS=		-llua -lm
 
 firm-tyt.bin: firm-tyt.img
 	../md380tools/md380-fw --wrap $> $@

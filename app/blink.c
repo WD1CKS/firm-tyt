@@ -9,10 +9,19 @@
 #include "usb_cdc.h"
 #include "lcd_driver.h"
 
+#ifdef CODEPLUGS
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+#endif
+
 static void sleep(void);
 
 static void output_main(void*);
 static void red_main(void*);
+#ifdef CODEPLUGS
+static void lua_main(void *args);
+#endif
 static SemaphoreHandle_t red_monitor;
 static lcd_context_t lcd;
 
@@ -20,6 +29,9 @@ int main (void) {
 	red_monitor = xSemaphoreCreateMutex();
 	xTaskCreate(output_main, "out", 256, NULL, 1, NULL);
 	xTaskCreate(red_main, "red", 256, NULL, 0, NULL);
+#ifdef CODEPLUGS
+	xTaskCreate(lua_main, "lua", 32*1024, NULL, 0, NULL);
+#endif
 	vTaskStartScheduler();
 	for(;;);
 }
@@ -107,6 +119,22 @@ static void red_main(void* machtnichts) {
 		sleep();
 	}
 }
+
+#ifdef CODEPLUGS
+static void
+lua_main(void *args)
+{
+	lua_State *lua;
+
+	/* initialize Lua */
+	lua = luaL_newstate();
+	if (lua == NULL)
+		return;
+	luaL_openlibs(lua);
+
+	lua_close(lua);
+}
+#endif
 
 static void sleep(void) {
 	TickType_t delay;
