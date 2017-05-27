@@ -41,6 +41,9 @@ CFLAGS=		-g -fverbose-asm -O2 -std=gnu99 -mthumb -mcpu=cortex-m4 -mthumb-interwo
 LDFLAGS=	-Wl,--script=stm32f405_flash_app.lds -L.
 .export
 LDLIBS=		-llua -lm
+.ifdef LUA
+  CFLAGS+=	-DCODEPLUGS
+.endif
 
 firm-tyt.bin: firm-tyt.img
 	../md380tools/md380-fw --wrap $> $@
