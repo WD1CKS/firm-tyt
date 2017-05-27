@@ -342,11 +342,11 @@ extern struct pin _pin_b9;
 
 extern struct pin _pin_b10;
 #define pin_b10 (&_pin_b10)
-#define pin_ecn2 pin_b10
+#define pin_ecn3 pin_b10
 
 extern struct pin _pin_b11;
 #define pin_b11 (&_pin_b11)
-#define pin_ecn3 pin_b11
+#define pin_ecn0 pin_b11
 
 extern struct pin _pin_b12;
 #define pin_b12 (&_pin_b12)
@@ -423,9 +423,11 @@ extern struct gpio _gpio_d;
 
 extern struct pin _pin_d0;
 #define pin_d0 (&_pin_d0)
+#define pin_lcd_d2 pin_d0
 
 extern struct pin _pin_d1;
 #define pin_d1 (&_pin_d1)
+#define pin_lcd_d3 pin_d1
 
 extern struct pin _pin_d2;
 #define pin_d2 (&_pin_d2)
@@ -463,12 +465,15 @@ extern struct pin _pin_d12;
 
 extern struct pin _pin_d13;
 #define pin_d13 (&_pin_d13)
+#define pin_lcd_rst pin_d13
 
 extern struct pin _pin_d14;
 #define pin_d14 (&_pin_d14)
+#define pin_lcd_d0 pin_d14
 
 extern struct pin _pin_d15;
 #define pin_d15 (&_pin_d15)
+#define pin_lcd_d1 pin_d15
 
 
 /* GPIOE **********************************************************************/
@@ -501,17 +506,21 @@ extern struct pin _pin_e6;
 
 extern struct pin _pin_e7;
 #define pin_e7 (&_pin_e7)
+#define pin_lcd_d4 pin_e7
 
 extern struct pin _pin_e8;
 #define pin_e8 (&_pin_e8)
+#define pin_lcd_d5 pin_e8
 
 extern struct pin _pin_e9;
 #define pin_e9 (&_pin_e9)
 #define pin_top pin_e9
+#define pin_lcd_d6 pin_e9
 
 extern struct pin _pin_e10;
 #define pin_e10 (&_pin_e10)
 #define pin_bottom pin_e10
+#define pin_lcd_d7 pin_e10
 
 extern struct pin _pin_e11;
 #define pin_e11 (&_pin_e11)
@@ -525,7 +534,7 @@ extern struct pin _pin_e13;
 
 extern struct pin _pin_e14;
 #define pin_e14 (&_pin_e14)
-#define pin_ecn0 pin_e14
+#define pin_ecn2 pin_e14
 
 extern struct pin _pin_e15;
 #define pin_e15 (&_pin_e15)

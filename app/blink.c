@@ -5,9 +5,9 @@
 #include "semphr.h"
 #include "task.h"
 #include "led.h"
-#include "gpio.h"
 #include "usb_cdc.h"
-#include "lcd_driver.h"
+#include "controls.h"
+#include "gpio.h"
 
 #ifdef CODEPLUGS
 #include "lua.h"
@@ -23,11 +23,10 @@ static void red_main(void*);
 static void lua_main(void *args);
 #endif
 static SemaphoreHandle_t red_monitor;
-static lcd_context_t lcd;
 
 int main (void) {
 	red_monitor = xSemaphoreCreateMutex();
-	xTaskCreate(output_main, "out", 256, NULL, 1, NULL);
+	xTaskCreate(output_main, "out", 2*1024, NULL, 1, NULL);
 	xTaskCreate(red_main, "red", 256, NULL, 0, NULL);
 #ifdef CODEPLUGS
 	xTaskCreate(lua_main, "lua", 32*1024, NULL, 0, NULL);
@@ -52,11 +51,26 @@ static int  get_red_state() {
 
 
 static void led_set(int red, int green) {
+	static int last_state = -1;
+	static char enc[] = "encoder: 00, ";
+	int ev;
+	int state;
+
 	red_led(red);
-	if (!red)
+	if (red)
+		pin_reset(pin_lcd_bl);
+	else
 		pin_set(pin_lcd_bl);
 	green_led(green);
 
+	ev = Encoder_Read();
+	state = ev<<2 | (red?2:0) | (green?1:0);
+	if (state == last_state)
+		return;
+	last_state = state;
+	enc[9] = ev / 10 + 48;
+	enc[10] = ev % 10 + 48;
+	usb_cdc_write(enc, 13);
 	const char red_on[] = "red on,  ";
 	const char red_off[] = "red off, ";
 	const char green_on[] = "green on\n";
@@ -65,47 +79,18 @@ static void led_set(int red, int green) {
 	SEND_STR(red?red_on:red_off);
 	SEND_STR(green?green_on:green_off);
 	#undef SEND_STR
-	lcd.x = 0;
-	lcd.y = 0;
-	LCD_DrawString(&lcd, red?red_on:red_off);
-	LCD_DrawString(&lcd, green?green_on:green_off);
-}
-
-static void input_setup(struct pin *pin) {
-	pin_enable(pin);
-	pin_set_mode(pin, PIN_MODE_INPUT);
-	pin_set_pupd(pin, PIN_PUPD_NONE);
-}
-
-static void output_setup(struct pin *pin) {
-	pin_enable(pin);
-	pin_set_mode(pin, PIN_MODE_OUTPUT);
-	pin_set_otype(pin, PIN_TYPE_PUSHPULL);
-	pin_set_ospeed(pin, PIN_SPEED_2MHZ);
-	pin_set_pupd(pin, PIN_PUPD_NONE);
-	pin_reset(pin);
 }
 
 static void output_main(void* machtnichts) {
-
 	led_setup();
+	pin_set_mode(pin_lcd_bl, PIN_MODE_OUTPUT);
+	pin_set_otype(pin_lcd_bl, PIN_TYPE_PUSHPULL);
+	pin_set_ospeed(pin_lcd_bl, PIN_SPEED_2MHZ);
+	pin_set_pupd(pin_lcd_bl, PIN_PUPD_NONE);
 	usb_cdc_init();
 
-	input_setup(pin_e11);
-	input_setup(pin_ecn0);
-	input_setup(pin_ecn1);
-	input_setup(pin_ecn2);
-	input_setup(pin_ecn3);
-	output_setup(pin_lcd_bl);
-	LCD_InitContext(&lcd);
-	lcd.bg_color = LCD_COLOR_WHITE;
-	lcd.fg_color = LCD_COLOR_BLACK;
-
 	for(;;) {
-		// PTT is active low
-		int ptt = !pin_read(pin_e11);
-		int red = get_red_state();
-		led_set(red, ptt);
+		led_set(get_red_state(), PTT_Read());
 		vTaskDelay(50);
 	}
 }
@@ -139,10 +124,7 @@ lua_main(void *args)
 static void sleep(void) {
 	TickType_t delay;
 
-	delay = (pin_read(pin_ecn0) << 6) |
-		(pin_read(pin_ecn1) << 7) |
-		(pin_read(pin_ecn2) << 8) |
-		(pin_read(pin_ecn3) << 9);
+	delay = Encoder_Read() << 6;
 
 	vTaskDelay(delay);
 }

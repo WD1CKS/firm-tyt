@@ -25,7 +25,8 @@ SRCS=	blink.c \
 	../hw/startup_stm32f4xx.s \
 	../hw/lcd_driver.c \
 	fonts/font_8_8.c \
-	stubs.c
+	stubs.c \
+	../hw/controls.c
 
 # This is a terrible thing to do...
 .ifdef GENLIST
