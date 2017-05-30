@@ -9,7 +9,7 @@
 #include "usb_cdc.h"
 #include "controls.h"
 #include "gpio.h"
-//#include "lcd_driver.h"
+#include "lcd_driver.h"
 
 #ifdef CODEPLUGS
 #include "lua.h"
@@ -25,7 +25,7 @@ static void lua_main(void *args);
 #endif
 static SemaphoreHandle_t red_monitor;
 static int  red_state;
-//static lcd_context_t lcd;
+static lcd_context_t lcd;
 
 int
 main (void)
@@ -85,10 +85,10 @@ led_set(int red, int green)
 	const char red_off[] = "red off, ";
 	const char green_on[] = "green on\n";
 	const char green_off[] = "green off\n";
-        //LCD_EnablePort();
+        LCD_EnablePort();
         #define SEND_STR(s) { \
                 usb_cdc_write((void*)(s), strlen(s)); \
-                /* LCD_DrawString(&lcd, s); */ \
+                LCD_DrawString(&lcd, s); \
         }
 	SEND_STR(red?red_on:red_off);
 	SEND_STR(green?green_on:green_off);
@@ -102,10 +102,10 @@ led_set(int red, int green)
 
 static void output_main(void* machtnichts) {
 	led_setup();
-        //LCD_Init();
-        //LCD_InitContext(&lcd);
-        //lcd.fg_color = LCD_COLOR_BLACK;
-        //lcd.bg_color = LCD_COLOR_WHITE;
+        LCD_Init();
+        LCD_InitContext(&lcd);
+        lcd.fg_color = LCD_COLOR_BLACK;
+        lcd.bg_color = LCD_COLOR_WHITE;
 	Controls_Init();
 	gpio_output_setup(pin_lcd_bl->bank, pin_lcd_bl->pin,
 	    GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);

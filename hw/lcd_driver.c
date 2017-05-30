@@ -55,8 +55,6 @@ extern const uint8_t font_8_8[256*8]; // extra font with 256 characters from 'co
 //   VISIBLE image - and painting isn't spectacularly fast !
 //---------------------------------------------------------------------------
 
-uint8_t LCD_b12Temp[12]; // small RAM buffer for a self-defined character
-
 //---------------------------------------------------------------------------
 __attribute__ ((noinline)) void LCD_WriteCommand( uint8_t bCommand )
   // I/O address taken from DL4YHF's dissassembly, @0x803352c in D13.020 .
@@ -595,24 +593,24 @@ static void FSMC_Conf(void)
 	FSMC_NORSRAMTimingInitTypeDef  p;
 
 	/*-- FSMC Configuration ------------------------------------------------------*/
-	p.FSMC_AddressSetupTime 		= 2;
-	p.FSMC_AddressHoldTime 			= 2;
+	p.FSMC_AddressSetupTime 		= 3;
+	p.FSMC_AddressHoldTime 			= 3;
 	p.FSMC_DataSetupTime 			= 2;
-	p.FSMC_BusTurnAroundDuration 	= 5;
-	p.FSMC_CLKDivision 				= 5;
-	p.FSMC_DataLatency 				= 5;
-	p.FSMC_AccessMode 				= FSMC_AccessMode_A;
+	p.FSMC_BusTurnAroundDuration		= 0;
+	p.FSMC_CLKDivision 			= 1;
+	p.FSMC_DataLatency 			= 0;
+	p.FSMC_AccessMode 			= FSMC_AccessMode_B;
 
 	FSMC_NORSRAMInitStructure.FSMC_Bank = FSMC_Bank1_NORSRAM1;
-	FSMC_NORSRAMInitStructure.FSMC_DataAddressMux = FSMC_DataAddressMux_Disable;
-	FSMC_NORSRAMInitStructure.FSMC_MemoryType = FSMC_MemoryType_SRAM;
+	FSMC_NORSRAMInitStructure.FSMC_DataAddressMux = FSMC_DataAddressMux_Enable;
+	FSMC_NORSRAMInitStructure.FSMC_MemoryType = FSMC_MemoryType_NOR;
 	FSMC_NORSRAMInitStructure.FSMC_MemoryDataWidth = FSMC_MemoryDataWidth_16b;        /* MUST be 16b*/
 	FSMC_NORSRAMInitStructure.FSMC_BurstAccessMode = FSMC_BurstAccessMode_Disable;
 	FSMC_NORSRAMInitStructure.FSMC_AsynchronousWait= FSMC_AsynchronousWait_Disable;
 	FSMC_NORSRAMInitStructure.FSMC_WaitSignalPolarity = FSMC_WaitSignalPolarity_Low;  /* cf RM p363 + p384*/
 	FSMC_NORSRAMInitStructure.FSMC_WrapMode = FSMC_WrapMode_Disable;
 	FSMC_NORSRAMInitStructure.FSMC_WaitSignalActive = FSMC_WaitSignalActive_BeforeWaitState;
-	FSMC_NORSRAMInitStructure.FSMC_WriteOperation = FSMC_WriteOperation_Enable;
+	FSMC_NORSRAMInitStructure.FSMC_WriteOperation = FSMC_WriteOperation_Disable;
 	FSMC_NORSRAMInitStructure.FSMC_WaitSignal = FSMC_WaitSignal_Disable;
 	FSMC_NORSRAMInitStructure.FSMC_ExtendedMode = FSMC_ExtendedMode_Disable;
 	FSMC_NORSRAMInitStructure.FSMC_WriteBurst = FSMC_WriteBurst_Disable;
@@ -644,18 +642,20 @@ void LCD_EnablePort(void)
 
 void LCD_Init(void)
 {
+	RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FSMC, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
-	RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FSMC, ENABLE);
 	LCD_EnablePort();
 	FSMC_Conf();
 
 	pin_reset(pin_lcd_rst);
-	vTaskDelay(120);
+	vTaskDelay(20);
+	pin_set(pin_lcd_rst);
+	vTaskDelay(30);
+	LCD_WriteCommand(LCD_CMD_SWRESET);
+	vTaskDelay(30);
 
-	pin_reset(pin_lcd_cs);   // Activate LCD chip select
-	//LCD_ShortDelay();
 	LCD_WriteCommand(LCD_CMD_COLMOD);
 	LCD_WriteData(0x05);	// 16bpp
 	LCD_WriteCommand(LCD_CMD_MADCTL);
@@ -720,6 +720,7 @@ void LCD_Init(void)
 	vTaskDelay(130);
 	LCD_WriteCommand(LCD_CMD_DISPON);
 	LCD_WriteCommand(LCD_CMD_RAMWR);
+	LCD_ShortDelay();
 	pin_set(pin_lcd_cs);   // Deactivate LCD chip select
 }
 

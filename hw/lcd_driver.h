@@ -140,9 +140,6 @@ typedef union T_RGB_Quad
 //     i.e. only occupies a few bytes on the stack.
 //---------------------------------------------------------------------------
 
-extern uint8_t LCD_b12Temp[12];  // small RAM buffer for a single, self-defined character
-
-
 //---------------------------------------------------------------------------
 // Prototypes for LOW-LEVEL LCD driver functions 
 //---------------------------------------------------------------------------

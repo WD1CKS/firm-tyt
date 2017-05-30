@@ -12,6 +12,7 @@
 #include <stm32f4xx.h>
 #include "led.h"
 
+__attribute__ ((used))
 void fault_get_regs(uint32_t *sp)
 {
   /* These are volatile to try and prevent the compiler/linker

@@ -50,6 +50,14 @@ gpio_input_setup(GPIO_TypeDef* bank, uint16_t pins, GPIOSpeed_TypeDef speed, GPI
 void
 gpio_af_setup(GPIO_TypeDef* bank, uint16_t pins, uint8_t af, GPIOSpeed_TypeDef speed, GPIOOType_TypeDef type, GPIOPuPd_TypeDef pupd)
 {
+	uint16_t	af_pins = pins;
+
+	/* stm32*_fsmc.h says to call GPIO_PinAFConfig() first */
+	while (af_pins) {
+		uint8_t src = ffs(af_pins) - 1;
+		GPIO_PinAFConfig(bank, src, af);
+		af_pins &= ~(1<<src);
+	}
 	GPIO_InitTypeDef def = {
 	    .GPIO_Pin = pins,
 	    .GPIO_Mode = GPIO_Mode_AF,
@@ -58,11 +66,6 @@ gpio_af_setup(GPIO_TypeDef* bank, uint16_t pins, uint8_t af, GPIOSpeed_TypeDef s
 	    .GPIO_PuPd = pupd
 	};
 	GPIO_Init(bank, &def);
-	while (pins) {
-		uint8_t src = ffs(pins) - 1;
-		GPIO_PinAFConfig(bank, src, af);
-		pins &= ~(1<<src);
-	}
 }
 
 void
