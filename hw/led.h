@@ -1,9 +1,10 @@
+#ifndef _LED_H_
+#define _LED_H_
 
-#ifndef __md380_hw_led_h
-#define __md380_hw_led_h
+#include "gpio.h"
 
 void led_setup(void);
-void green_led(int);
-void red_led(int);
+#define green_led(on)	pin_write(pin_green_led, on)
+#define red_led(on)		pin_write(pin_red_led, on)
 
-#endif // __md380_hw_led_h
+#endif

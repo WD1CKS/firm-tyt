@@ -16,15 +16,17 @@
 #endif
 
 static void sleep(void);
-
 static void output_main(void*);
 static void red_main(void*);
 #ifdef CODEPLUGS
 static void lua_main(void *args);
 #endif
 static SemaphoreHandle_t red_monitor;
+static int  red_state;
 
-int main (void) {
+int
+main (void)
+{
 	red_monitor = xSemaphoreCreateMutex();
 	xTaskCreate(output_main, "out", 2*1024, NULL, 1, NULL);
 	xTaskCreate(red_main, "red", 256, NULL, 0, NULL);
@@ -32,16 +34,21 @@ int main (void) {
 	xTaskCreate(lua_main, "lua", 32*1024, NULL, 0, NULL);
 #endif
 	vTaskStartScheduler();
-	for(;;);
+	for(;;)
+		vTaskDelay(1000);
 }
 
-static int  red_state;
-static void set_red_state(int i) {
+static void
+set_red_state(int i)
+{
 	xSemaphoreTake(red_monitor, portMAX_DELAY);
 	red_state = i;
 	xSemaphoreGive(red_monitor);
 }
-static int  get_red_state() {
+
+static int
+get_red_state()
+{
 	int i;
 	xSemaphoreTake(red_monitor, portMAX_DELAY);
 	i = red_state;
@@ -49,19 +56,17 @@ static int  get_red_state() {
 	return i;
 }
 
-
-static void led_set(int red, int green) {
+static void
+led_set(int red, int green)
+{
 	static int last_state = -1;
 	static char enc[] = "encoder: 00, ";
 	int ev;
 	int state;
 
 	red_led(red);
-	if (red)
-		pin_reset(pin_lcd_bl);
-	else
-		pin_set(pin_lcd_bl);
 	green_led(green);
+	pin_write(pin_lcd_bl, !red);
 
 	ev = Encoder_Read();
 	state = ev<<2 | (red?2:0) | (green?1:0);
@@ -83,10 +88,9 @@ static void led_set(int red, int green) {
 
 static void output_main(void* machtnichts) {
 	led_setup();
-	pin_set_mode(pin_lcd_bl, PIN_MODE_OUTPUT);
-	pin_set_otype(pin_lcd_bl, PIN_TYPE_PUSHPULL);
-	pin_set_ospeed(pin_lcd_bl, PIN_SPEED_2MHZ);
-	pin_set_pupd(pin_lcd_bl, PIN_PUPD_NONE);
+	Controls_Init();
+	gpio_output_setup(pin_lcd_bl->bank, pin_lcd_bl->pin,
+	    GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
 	usb_cdc_init();
 
 	for(;;) {

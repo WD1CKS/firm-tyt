@@ -5,6 +5,12 @@
 #undef errno
 extern int errno;
 
+void
+_exit(int status)
+{
+	for(;;);
+}
+
 int _fstat(int file, struct stat *st) {
   st->st_mode = S_IFCHR;
   return 0;

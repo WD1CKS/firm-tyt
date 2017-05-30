@@ -29,11 +29,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usb_bsp.h"
 
-#include "rcc.h"
 #include "gpio.h"
-#include "interrupt.h"
+//#include "interrupt.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "stm32f4xx_rcc.h"
 
 /** USB pin definitions for the STM32F4. */
 #define USB_VBUS_PIN pin_a9
@@ -48,28 +48,15 @@
  */
 void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *usb_dev)
 {
-  pin_enable(USB_VBUS_PIN);
-  pin_set_mode(USB_VBUS_PIN, PIN_MODE_INPUT);
-  pin_set_pupd(USB_VBUS_PIN, PIN_PUPD_NONE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+  gpio_input_setup(USB_VBUS_PIN->bank, USB_VBUS_PIN->pin);
 
-  pin_enable(USB_DM_PIN);
-  pin_set_af(USB_DM_PIN, PIN_AF_OTG_FS);
-  pin_set_ospeed(USB_DM_PIN, PIN_SPEED_100MHZ);
-  pin_set_otype(USB_DM_PIN, PIN_TYPE_PUSHPULL);
-  pin_set_pupd(USB_DM_PIN, PIN_PUPD_NONE);
-  pin_set_mode(USB_DM_PIN, PIN_MODE_AF);
+  gpio_af_setup(USB_DM_PIN->bank, USB_DM_PIN->pin | USB_DP_PIN->pin,
+    GPIO_AF_OTG_FS, GPIO_High_Speed, GPIO_OType_PP, GPIO_PuPd_NOPULL);
 
-  pin_enable(USB_DP_PIN);
-  pin_set_af(USB_DP_PIN, PIN_AF_OTG_FS);
-  pin_set_ospeed(USB_DP_PIN, PIN_SPEED_100MHZ);
-  pin_set_otype(USB_DP_PIN, PIN_TYPE_PUSHPULL);
-  pin_set_pupd(USB_DP_PIN, PIN_PUPD_NONE);
-  pin_set_mode(USB_DP_PIN, PIN_MODE_AF);
-
-  rcc_enable(RCCDEV_SYSCFG);
-  rcc_enable(RCCDEV_OTGFS);
-
-  interrupt_set_priority(OTG_FS_IRQn, INTERRUPT_PRIORITY_FREERTOS_SAFE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+  RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_OTG_FS, ENABLE);
+  NVIC_SetPriority(OTG_FS_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
 }
 
 /**
@@ -80,7 +67,7 @@ void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *usb_dev)
  */
 void USB_OTG_BSP_EnableInterrupt(USB_OTG_CORE_HANDLE *pdev)
 {
-  interrupt_enable(OTG_FS_IRQn);
+  NVIC_EnableIRQ(OTG_FS_IRQn);
 }
 
 /**
