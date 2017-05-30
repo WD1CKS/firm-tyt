@@ -14,7 +14,7 @@ struct gpio_pin_def {
 #define pin_read(p)			GPIO_ReadInputDataBit((p)->bank, (p)->pin)
 #define pin_write(p, v)		GPIO_WriteBit((p)->bank, (p)->pin, v)
 
-void gpio_input_setup(GPIO_TypeDef* bank, uint16_t pins);
+void gpio_input_setup(GPIO_TypeDef* bank, uint16_t pins, GPIOSpeed_TypeDef speed, GPIOPuPd_TypeDef pupd);
 void gpio_af_setup(GPIO_TypeDef* bank, uint16_t pins, uint8_t af,
     GPIOSpeed_TypeDef speed, GPIOOType_TypeDef type,
     GPIOPuPd_TypeDef pupd);

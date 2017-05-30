@@ -14,6 +14,63 @@
 #define LCD_FONT_WIDTH  6  // width  of a character cell in the 'small', fixed font
 #define LCD_FONT_HEIGHT 12 // height of a character cell in the 'small', fixed font
 
+// ST7735 System Function Commands
+#define LCD_CMD_NOP		0x00	// No Operation
+#define LCD_CMD_SWRESET		0x01	// Software reset
+#define LCD_CMD_RDDID		0x04	// Read Display ID
+#define LCD_CMD_RDDST		0x09	// Read Display Status
+#define LCD_CMD_RDDPM		0x0a	// Read Display Power
+#define LCD_CMD_RDD_MADCTL	0x0b	// Read Display
+#define LCD_CMD_RDD_COLMOD	0x0c	// Read Display Pixel
+#define LCD_CMD_RDDDIM		0x0d	// Read Display Image
+#define LCD_CMD_RDDSM		0x0e	// Read Display Signal
+#define LCD_CMD_SLPIN		0x10	// Sleep in & booster off
+#define LCD_CMD_SLPOUT		0x11	// Sleep out & booster on
+#define LCD_CMD_PTLON		0x12	// Partial mode on
+#define LCD_CMD_NORON		0x13	// Partial off (Normal)
+#define LCD_CMD_INVOFF		0x20	// Display inversion off
+#define LCD_CMD_INVON		0x21	// Display inversion on
+#define LCD_CMD_GAMSET		0x26	// Gamma curve select
+#define LCD_CMD_DISPOFF		0x28	// Display off
+#define LCD_CMD_DISPON		0x29	// Display on
+#define LCD_CMD_CASET		0x2a	// Column address set
+#define LCD_CMD_RASET		0x2b	// Row address set
+#define LCD_CMD_RAMWR		0x2c	// Memory write
+#define LCD_CMD_RAMRD		0x2e	// Memory read
+#define LCD_CMD_PTLAR		0x30	// Partial start/end address set
+#define LCD_CMD_TEOFF		0x34	// Tearing effect line off
+#define LCD_CMD_TEON		0x35	// Tearing effect mode set & on
+#define LCD_CMD_MADCTL		0x36	// Memory data access control
+#define LCD_CMD_IDMOFF		0x38	// Idle mode off
+#define LCD_CMD_IDMON		0x39	// Idle mode on
+#define LCD_CMD_COLMOD		0x3a	// Interface pixel format
+#define LCD_CMD_RDID1		0xda	// Read ID1
+#define LCD_CMD_RDID2		0xdb	// Read ID2
+#define LCD_CMD_RDID3		0xdc	// Read ID3
+
+// Panel Function Commands
+#define LCD_CMD_FRMCTR1		0xb1	// In normal mode
+#define LCD_CMD_FRMCTR2		0xb2	// In idle mode
+#define LCD_CMD_FRMCTR3		0xb3	// In partial mode + Full colors
+#define LCD_CMD_INVCTR		0xb4	// Display inversion control
+#define LCD_CMD_DISSET5		0xb6	// Display function setting
+#define LCD_CMD_PWCTR1		0xc0	// Power control setting
+#define LCD_CMD_PWCTR2		0xc1	// Power control setting
+#define LCD_CMD_PWCTR3		0xc2	// In normal mode (Full colors)
+#define LCD_CMD_PWCTR4		0xc3	// In Idle mode (8-colors)
+#define LCD_CMD_PWCTR5		0xc4	// In partial mode + Full colors
+#define LCD_CMD_VMCTR1		0xc5	// VCOM control 1
+#define LCD_CMD_VMOFCTR		0xc7	// Set VCOM offset control
+#define LCD_CMD_WRID2		0xd1	// Set LCM version code
+#define LCD_CMD_WRID3		0xd2	// Customer Project code
+#define LCD_CMD_PWCTR6		0xfc	// In partial mode + Idle
+#define LCD_CMD_NVCTR1		0xd9	// EEPROM control status
+#define LCD_CMD_NVCTR2		0xde	// EEPROM Read Command
+#define LCD_CMD_NVCTR3		0xdf	// EEPROM Write Command
+#define LCD_CMD_GAMCTRP1	0xe0	// Set Gamma adjustment +
+#define LCD_CMD_GAMCTRN1	0xe1	// Set Gamma adjustment -
+#define LCD_CMD_EXTCTRL		0xf0	// Extension Command Control
+#define LCD_CMD_VCOM4L		0xff	// Vcom 4 Level control
 
 // Colour values for the internally used 16-bit "BGR565" format :
 // BLUE component in bits 15..11, GREEN in bits 10..5, RED in bits 4..0 :
@@ -148,5 +205,7 @@ int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... );
   // but with all goodies supported by tinyprintf .
 #endif
 
+void LCD_Init(void);
+void LCD_EnablePort(void);
 
 /* EOF < md380tools/applet/src/lcd_driver.h > */

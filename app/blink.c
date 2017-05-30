@@ -1,4 +1,5 @@
-
+#include <ctype.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include "FreeRTOS.h"
@@ -8,6 +9,7 @@
 #include "usb_cdc.h"
 #include "controls.h"
 #include "gpio.h"
+//#include "lcd_driver.h"
 
 #ifdef CODEPLUGS
 #include "lua.h"
@@ -23,6 +25,7 @@ static void lua_main(void *args);
 #endif
 static SemaphoreHandle_t red_monitor;
 static int  red_state;
+//static lcd_context_t lcd;
 
 int
 main (void)
@@ -61,8 +64,10 @@ led_set(int red, int green)
 {
 	static int last_state = -1;
 	static char enc[] = "encoder: 00, ";
+	char kp[14];
 	int ev;
 	int state;
+	char key;
 
 	red_led(red);
 	green_led(green);
@@ -80,14 +85,27 @@ led_set(int red, int green)
 	const char red_off[] = "red off, ";
 	const char green_on[] = "green on\n";
 	const char green_off[] = "green off\n";
-	#define SEND_STR(s) usb_cdc_write((void*)(s), strlen(s))
+        //LCD_EnablePort();
+        #define SEND_STR(s) { \
+                usb_cdc_write((void*)(s), strlen(s)); \
+                /* LCD_DrawString(&lcd, s); */ \
+        }
 	SEND_STR(red?red_on:red_off);
 	SEND_STR(green?green_on:green_off);
 	#undef SEND_STR
+	key = get_key();
+	if (key) {
+		sprintf(kp, "%d (%c)\n", key, isprint(key)?key:'.');
+		usb_cdc_write(kp, 11);
+	}
 }
 
 static void output_main(void* machtnichts) {
 	led_setup();
+        //LCD_Init();
+        //LCD_InitContext(&lcd);
+        //lcd.fg_color = LCD_COLOR_BLACK;
+        //lcd.bg_color = LCD_COLOR_WHITE;
 	Controls_Init();
 	gpio_output_setup(pin_lcd_bl->bank, pin_lcd_bl->pin,
 	    GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);

@@ -1,8 +1,10 @@
 SRCS=	blink.c \
 	stubs.c \
+	fonts/font_8_8.c \
 	../hw/controls.c \
 	../hw/fault.c \
 	../hw/gpio.c \
+	../hw/lcd_driver.c \
 	../hw/led.c \
 	../hw/usb_cdc.c \
 	../hw/usb/usb_bsp.c \
@@ -22,6 +24,7 @@ SRCS=	blink.c \
 	../FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c \
 	../FreeRTOS/Source/portable/MemMang/heap_2.c \
 	../stdperiph/system_stm32f4xx.c \
+	../stdperiph/stm32f4xx_fsmc.c \
 	../stdperiph/stm32f4xx_gpio.c \
 	../stdperiph/stm32f4xx_rcc.c \
 	../stdperiph/startup_stm32f40xx.s

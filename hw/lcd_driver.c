@@ -25,6 +25,11 @@
 //#include "md380.h"
 //#include "irq_handlers.h" // hardware-specific stuff like "LCD_CS_LOW", etc
 #include "lcd_driver.h"   // constants + API prototypes for the *alternative* LCD driver (no "gfx")
+#include "FreeRTOS.h"
+#include "task.h"
+#include "stm32f4xx_fsmc.h"
+#include "stm32f4xx_rcc.h"
+#include "usb_cdc.h"
 
 // Regardless of the command line, let the compiler show ALL warnings from here on:
 #pragma GCC diagnostic warning "-Wall"
@@ -579,5 +584,143 @@ int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... )
 } // end LCD_Printf()
 #endif
 
+/**************************************************************************/
+/*! 
+    Display Driver Lowest Layer Settings.
+*/
+/**************************************************************************/
+static void FSMC_Conf(void)
+{
+	FSMC_NORSRAMInitTypeDef  FSMC_NORSRAMInitStructure;
+	FSMC_NORSRAMTimingInitTypeDef  p;
+
+	/*-- FSMC Configuration ------------------------------------------------------*/
+	p.FSMC_AddressSetupTime 		= 2;
+	p.FSMC_AddressHoldTime 			= 2;
+	p.FSMC_DataSetupTime 			= 2;
+	p.FSMC_BusTurnAroundDuration 	= 5;
+	p.FSMC_CLKDivision 				= 5;
+	p.FSMC_DataLatency 				= 5;
+	p.FSMC_AccessMode 				= FSMC_AccessMode_A;
+
+	FSMC_NORSRAMInitStructure.FSMC_Bank = FSMC_Bank1_NORSRAM1;
+	FSMC_NORSRAMInitStructure.FSMC_DataAddressMux = FSMC_DataAddressMux_Disable;
+	FSMC_NORSRAMInitStructure.FSMC_MemoryType = FSMC_MemoryType_SRAM;
+	FSMC_NORSRAMInitStructure.FSMC_MemoryDataWidth = FSMC_MemoryDataWidth_16b;        /* MUST be 16b*/
+	FSMC_NORSRAMInitStructure.FSMC_BurstAccessMode = FSMC_BurstAccessMode_Disable;
+	FSMC_NORSRAMInitStructure.FSMC_AsynchronousWait= FSMC_AsynchronousWait_Disable;
+	FSMC_NORSRAMInitStructure.FSMC_WaitSignalPolarity = FSMC_WaitSignalPolarity_Low;  /* cf RM p363 + p384*/
+	FSMC_NORSRAMInitStructure.FSMC_WrapMode = FSMC_WrapMode_Disable;
+	FSMC_NORSRAMInitStructure.FSMC_WaitSignalActive = FSMC_WaitSignalActive_BeforeWaitState;
+	FSMC_NORSRAMInitStructure.FSMC_WriteOperation = FSMC_WriteOperation_Enable;
+	FSMC_NORSRAMInitStructure.FSMC_WaitSignal = FSMC_WaitSignal_Disable;
+	FSMC_NORSRAMInitStructure.FSMC_ExtendedMode = FSMC_ExtendedMode_Disable;
+	FSMC_NORSRAMInitStructure.FSMC_WriteBurst = FSMC_WriteBurst_Disable;
+	FSMC_NORSRAMInitStructure.FSMC_ReadWriteTimingStruct = &p;
+	FSMC_NORSRAMInitStructure.FSMC_WriteTimingStruct = &p;
+
+	FSMC_NORSRAMInit(&FSMC_NORSRAMInitStructure); 
+
+	/* Enable FSMC Bank1_SRAM Bank */
+	FSMC_NORSRAMCmd(FSMC_Bank1_NORSRAM1, ENABLE);
+
+}
+
+void LCD_EnablePort(void)
+{
+	/* Set up pins */
+	gpio_af_setup(pin_lcd_rd->bank, pin_lcd_rd->pin |
+	    pin_lcd_wr->pin | pin_lcd_rs->pin | pin_lcd_d0->pin |
+	    pin_lcd_d1->pin | pin_lcd_d2->pin | pin_lcd_d3->pin,
+	    GPIO_AF_FSMC, GPIO_Speed_100MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
+	gpio_af_setup(pin_lcd_d4->bank, pin_lcd_d4->pin |
+	    pin_lcd_d5->pin | pin_lcd_d6->pin | pin_lcd_d7->pin,
+	    GPIO_AF_FSMC, GPIO_Speed_100MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
+	gpio_output_setup(pin_lcd_rst->bank, pin_lcd_rst->pin | pin_lcd_cs->pin,
+	    GPIO_Speed_100MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
+	gpio_output_setup(pin_lcd_bl->bank, pin_lcd_bl->pin, GPIO_Speed_100MHz,
+	    GPIO_OType_PP, GPIO_PuPd_NOPULL);
+}
+
+void LCD_Init(void)
+{
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
+	RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FSMC, ENABLE);
+	LCD_EnablePort();
+	FSMC_Conf();
+
+	pin_reset(pin_lcd_rst);
+	vTaskDelay(120);
+
+	pin_reset(pin_lcd_cs);   // Activate LCD chip select
+	//LCD_ShortDelay();
+	LCD_WriteCommand(LCD_CMD_COLMOD);
+	LCD_WriteData(0x05);	// 16bpp
+	LCD_WriteCommand(LCD_CMD_MADCTL);
+	LCD_WriteData(0x08);	// 0100 1000 -- Left to Right refresh, BGR panel, Top to bottom refresh, No rotation, X reversed, Y normal
+	LCD_WriteCommand(0xfe);
+	LCD_WriteCommand(0xef);
+	LCD_WriteCommand(LCD_CMD_INVCTR);
+	LCD_WriteData(0x00);	// Line inversion in all modes
+	LCD_WriteCommand(LCD_CMD_VCOM4L);
+	LCD_WriteData(0x16);
+	LCD_WriteCommand(0xfd);
+	LCD_WriteData(0x40);
+	LCD_WriteCommand(0xa4);
+	LCD_WriteData(0x70);
+	LCD_WriteCommand(0xe7);
+	LCD_WriteData(0x94);
+	LCD_WriteData(0x88);
+	LCD_WriteCommand(0xea);
+	LCD_WriteData(0x3a);
+	LCD_WriteCommand(0xed);
+	LCD_WriteData(0x11);
+	LCD_WriteCommand(0xe4);
+	LCD_WriteData(0xc5);
+	LCD_WriteCommand(0xe2);
+	LCD_WriteData(0x80);
+	LCD_WriteCommand(0xa3);
+	LCD_WriteData(0x12);
+	LCD_WriteCommand(0xe3);
+	LCD_WriteData(0x07);
+	LCD_WriteCommand(0xe5);
+	LCD_WriteData(0x10);
+	LCD_WriteCommand(LCD_CMD_EXTCTRL);
+	LCD_WriteData(0x00);
+	LCD_WriteCommand(0xf1);
+	LCD_WriteData(0x55);
+	LCD_WriteCommand(0xf2);
+	LCD_WriteData(0x05);
+	LCD_WriteCommand(0xf3);
+	LCD_WriteData(0x53);
+	LCD_WriteCommand(0xf4);
+	LCD_WriteData(0x00);
+	LCD_WriteCommand(0xf5);
+	LCD_WriteData(0x00);
+	LCD_WriteCommand(0xf7);
+	LCD_WriteData(0x27);
+	LCD_WriteCommand(0xf8);
+	LCD_WriteData(0x22);
+	LCD_WriteCommand(0xf9);
+	LCD_WriteData(0x77);	// 0xff in disassembly
+	LCD_WriteCommand(0xfa);
+	LCD_WriteData(0x35);
+	LCD_WriteCommand(0xfb);
+	LCD_WriteData(0x00);
+	LCD_WriteCommand(LCD_CMD_PWCTR6);
+	LCD_WriteData(0x00);
+	LCD_WriteCommand(0xfe);
+	LCD_WriteCommand(0xef);
+	LCD_WriteCommand(0xe9);
+	LCD_WriteData(0x00);
+	vTaskDelay(20);
+	LCD_WriteCommand(LCD_CMD_SLPOUT);
+	vTaskDelay(130);
+	LCD_WriteCommand(LCD_CMD_DISPON);
+	LCD_WriteCommand(LCD_CMD_RAMWR);
+	pin_set(pin_lcd_cs);   // Deactivate LCD chip select
+}
 
 /* EOF < md380tools/applet/src/lcd_driver.c > */
