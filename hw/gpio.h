@@ -23,6 +23,7 @@ void gpio_af_setup(GPIO_TypeDef* bank, uint16_t pins, uint8_t af,
 void gpio_output_setup(GPIO_TypeDef* bank, uint16_t pins,
     GPIOSpeed_TypeDef speed, GPIOOType_TypeDef type,
     GPIOPuPd_TypeDef pupd);
+void gpio_analog_setup(GPIO_TypeDef*bank, uint16_t pins, GPIOPuPd_TypeDef pupd);
 
 #define DECL_PIN(b, n) extern const struct gpio_pin_def _pin_ ## b ## n
 

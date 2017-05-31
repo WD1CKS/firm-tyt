@@ -6,11 +6,15 @@
 #include "controls.h"
 #include "gpio.h"
 #include "stm32f4xx_rcc.h"
+#include "stm32f4xx_adc.h"
 #include "usb_cdc.h"
 
 void
 Controls_Init(void)
 {
+	ADC_InitTypeDef ai;
+	ADC_CommonInitTypeDef aci;
+
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
@@ -18,11 +22,44 @@ Controls_Init(void)
 	gpio_input_setup(GPIOB, GPIO_Pin_10 | GPIO_Pin_11, GPIO_High_Speed, GPIO_PuPd_NOPULL);
 	gpio_input_setup(GPIOE, GPIO_Pin_14 | GPIO_Pin_15 | GPIO_Pin_11, GPIO_High_Speed, GPIO_PuPd_NOPULL);
 
+	/* And the volume pot... */
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+	gpio_analog_setup(pin_a0->bank, pin_a0->pin, GPIO_PuPd_NOPULL);
+
+	aci.ADC_Mode = ADC_Mode_Independent;
+	aci.ADC_Prescaler = ADC_Prescaler_Div2;
+	aci.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
+	aci.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
+	ADC_CommonInit(&aci);
+
+	ai.ADC_Resolution = ADC_Resolution_12b;
+	ai.ADC_ScanConvMode = DISABLE;
+	ai.ADC_ContinuousConvMode = DISABLE;
+	ai.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
+	ai.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T2_TRGO;
+	ai.ADC_DataAlign = ADC_DataAlign_Right;
+	ai.ADC_NbrOfConversion = 1;
+	ADC_Init(ADC1, &ai);
+
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_480Cycles);
+	ADC_Cmd(ADC1, ENABLE);
+}
+
+void
+Power_As_Input(void)
+{
 	/* Overrides power switch */
 	gpio_output_setup(GPIOA, GPIO_Pin_7, GPIO_Low_Speed, GPIO_OType_PP, GPIO_PuPd_NOPULL);
 	pin_set(pin_a7);
 	/* Reads current power switch state */
 	gpio_input_setup(GPIOA, GPIO_Pin_1, GPIO_Low_Speed, GPIO_PuPd_NOPULL);
+}
+
+void
+Normal_Power(void)
+{
+	gpio_output_setup(GPIOA, GPIO_Pin_7, GPIO_Low_Speed, GPIO_OType_PP, GPIO_PuPd_NOPULL);
+	pin_reset(pin_a7);
 }
 
 uint8_t
@@ -34,6 +71,15 @@ Encoder_Read(void)
 	    (pin_read(pin_ecn1) << 1) |
 	    (pin_read(pin_ecn2) << 2) |
 	    (pin_read(pin_ecn3) << 3)];
+}
+
+int
+VOL_Read(void)
+{
+	ADC_SoftwareStartConv(ADC1);
+	while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
+		vTaskDelay(1);
+	return ADC_GetConversionValue(ADC1);
 }
 
 bool

@@ -9,6 +9,10 @@ uint8_t Encoder_Read(void);
 bool PTT_Read(void);
 uint32_t keypad_read(void);
 char get_key(void);
+void Power_As_Input(void);
+void Normal_Power(void);
+int VOL_Read(void);
+
 
 #define KEY_PTT		'T'
 #define KEY_TOP		'~'

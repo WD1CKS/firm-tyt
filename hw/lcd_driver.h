@@ -201,11 +201,9 @@ int LCD_DrawString( lcd_context_t *pContext, const char *cp );
   // Draws a zero-terminated ASCII string. 
   // Returns the graphic coordinate (x) to print the next character .
 
-#ifdef notyet
 int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... );
   // Almost the same as LCD_DrawString,
   // but with all goodies supported by tinyprintf .
-#endif
 
 void LCD_Init(void);
 void LCD_EnablePort(void);

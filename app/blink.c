@@ -68,6 +68,7 @@ led_set(int red, int green)
 	int ev;
 	int state;
 	char key;
+	int vol;
 
 	red_led(red);
 	green_led(green);
@@ -107,10 +108,14 @@ led_set(int red, int green)
 			lcd.y=40;
 			lcd.font = LCD_OPT_DOUBLE_WIDTH | LCD_OPT_DOUBLE_HEIGHT;
 			LCD_DrawString(&lcd, "\tFucker!");
-			vTaskDelay(1500);Returned 
-			pin_toggle(pin_a7);
+			vTaskDelay(1500);
+			Normal_Power();
 		}
 	}
+	vol = VOL_Read();
+	lcd.x = 0;
+	lcd.y += 8;
+	LCD_Printf(&lcd, "Vol: %d\n", vol);
 }
 
 static void output_main(void* machtnichts) {
@@ -125,6 +130,7 @@ static void output_main(void* machtnichts) {
 	    GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
 	pin_set(pin_lcd_bl);
 	usb_cdc_init();
+	Power_As_Input();
 
 	for(;;) {
 		led_set(get_red_state(), PTT_Read());

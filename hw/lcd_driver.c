@@ -19,9 +19,8 @@
 #include <stdint.h>
 #include <string.h>       // memset(), ...
 #include <gpio.h>
-#ifdef notyet
-#include "printf.h"       // Kustaa Nyholm's tinyprintf (printf.c)
-#endif
+#include <stdarg.h>
+#include <stdio.h>
 //#include "md380.h"
 //#include "irq_handlers.h" // hardware-specific stuff like "LCD_CS_LOW", etc
 #include "lcd_driver.h"   // constants + API prototypes for the *alternative* LCD driver (no "gfx")
@@ -569,7 +568,6 @@ LCD_DrawString( lcd_context_t *pContext, const char *cp )
 	return x;
 }
 
-#ifdef notyet
   // Almost the same as LCD_DrawString,
   // but with all goodies supported by tinyprintf .
   // Total length of the output should not exceed 80 characters.
@@ -579,12 +577,11 @@ LCD_Printf( lcd_context_t *pContext, const char *fmt, ... )
 	char szTemp[84]; // how large is the stack ? Dare to use more ?
 	va_list va;
 	va_start(va, fmt);
-	va_snprintf(szTemp, sizeof(szTemp)-1, fmt, va );    
-	va_end(va); 
-	szTemp[sizeof(szTemp)-1] = '\0';     
+	vsnprintf(szTemp, sizeof(szTemp)-1, fmt, va );
+	va_end(va);
+	szTemp[sizeof(szTemp)-1] = '\0';
 	return LCD_DrawString( pContext, szTemp );
 }
-#endif
 
 /**************************************************************************/
 /*! 

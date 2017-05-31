@@ -82,3 +82,13 @@ gpio_output_setup(GPIO_TypeDef* bank, uint16_t pins,
 	};
 	GPIO_Init(bank, &def);
 }
+
+void
+gpio_analog_setup(GPIO_TypeDef*bank, uint16_t pins, GPIOPuPd_TypeDef pupd)
+{
+	GPIO_InitTypeDef def = {
+	    .GPIO_Pin = GPIO_Mode_AN,
+	    .GPIO_PuPd = pupd
+	};
+	GPIO_Init(bank, &def);
+}

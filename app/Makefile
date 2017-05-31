@@ -24,6 +24,7 @@ SRCS=	blink.c \
 	../FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c \
 	../FreeRTOS/Source/portable/MemMang/heap_2.c \
 	../stdperiph/system_stm32f4xx.c \
+	../stdperiph/stm32f4xx_adc.c \
 	../stdperiph/stm32f4xx_fsmc.c \
 	../stdperiph/stm32f4xx_gpio.c \
 	../stdperiph/stm32f4xx_rcc.c \
