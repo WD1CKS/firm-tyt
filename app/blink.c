@@ -102,6 +102,14 @@ led_set(int red, int green)
 			pin_toggle(pin_lcd_bl);
 		sprintf(kp, "%d (%c)\n", key, isprint(key)?key:'.');
 		usb_cdc_write(kp, 11);
+		if (key == 'P') {	// Power off
+			lcd.x=0;
+			lcd.y=40;
+			lcd.font = LCD_OPT_DOUBLE_WIDTH | LCD_OPT_DOUBLE_HEIGHT;
+			LCD_DrawString(&lcd, "\tFucker!");
+			vTaskDelay(1500);Returned 
+			pin_toggle(pin_a7);
+		}
 	}
 }
 
