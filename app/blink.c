@@ -106,6 +106,7 @@ static void output_main(void* machtnichts) {
         LCD_InitContext(&lcd);
         lcd.fg_color = LCD_COLOR_BLACK;
         lcd.bg_color = LCD_COLOR_WHITE;
+	LCD_ColorGradientTest();
 	Controls_Init();
 	gpio_output_setup(pin_lcd_bl->bank, pin_lcd_bl->pin,
 	    GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
