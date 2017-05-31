@@ -42,6 +42,9 @@ keypad_delay(void)
 	}
 }
 
+#include <stdio.h>
+#include "lcd_driver.h"
+extern lcd_context_t lcd;
 uint32_t
 keypad_read(void)
 {
@@ -74,6 +77,12 @@ keypad_read(void)
 	pin_set(pin_d3);
 	if (pin_read(pin_ptt))
 		ret |= 0x08;
+	LCD_EnablePort();
+	lcd.x = 0;
+	lcd.y = 24;
+	char ks[16];
+	sprintf(ks, "Keys: %08x", ret);
+	LCD_DrawString(&lcd, ks);
 	return ret;
 }
 
@@ -97,5 +106,11 @@ get_key(void)
 
 	key = ffs(pressed) - 1;
 	last_state &= ~(1<<(key));
+	LCD_EnablePort();
+	lcd.x = 0;
+	lcd.y = 32;
+	char kp[16];
+	sprintf(kp, "Key: %02x (%c)", keymap[key], keymap[key]);
+	LCD_DrawString(&lcd, kp);
 	return keymap[key];
 }

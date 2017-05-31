@@ -25,7 +25,7 @@ static void lua_main(void *args);
 #endif
 static SemaphoreHandle_t red_monitor;
 static int  red_state;
-static lcd_context_t lcd;
+lcd_context_t lcd;
 
 int
 main (void)
@@ -80,14 +80,19 @@ led_set(int red, int green)
 	enc[9] = ev / 10 + 48;
 	enc[10] = ev % 10 + 48;
 	usb_cdc_write(enc, 13);
+	lcd.x = lcd.y = 0;
+	LCD_EnablePort();
+	LCD_DrawString(&lcd, enc);
+	lcd.y = 8;
 	const char red_on[] = "red on,  ";
 	const char red_off[] = "red off, ";
 	const char green_on[] = "green on\n";
 	const char green_off[] = "green off\n";
-        LCD_EnablePort();
         #define SEND_STR(s) { \
                 usb_cdc_write((void*)(s), strlen(s)); \
+                lcd.x = 0; \
                 LCD_DrawString(&lcd, s); \
+                lcd.y += 8; \
         }
 	SEND_STR(red?red_on:red_off);
 	SEND_STR(green?green_on:green_off);
