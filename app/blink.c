@@ -97,6 +97,10 @@ led_set(int red, int green)
 	SEND_STR(red?red_on:red_off);
 	SEND_STR(green?green_on:green_off);
 	#undef SEND_STR
+	vol = VOL_Read();
+	lcd.x = 0;
+	lcd.y += 8;
+	LCD_Printf(&lcd, "Vol: %d\n", vol);
 	key = get_key();
 	if (key) {
 		if (key == '~')
@@ -105,7 +109,7 @@ led_set(int red, int green)
 		usb_cdc_write(kp, 11);
 		if (key == 'P') {	// Power off
 			lcd.x=0;
-			lcd.y=40;
+			lcd.y=56;
 			lcd.font = LCD_OPT_DOUBLE_WIDTH | LCD_OPT_DOUBLE_HEIGHT;
 			LCD_DrawString(&lcd, "\tFucker!");
 			lcd.font = 0;
@@ -113,10 +117,6 @@ led_set(int red, int green)
 			Normal_Power();
 		}
 	}
-	vol = VOL_Read();
-	lcd.x = 0;
-	lcd.y += 8;
-	LCD_Printf(&lcd, "Vol: %d\n", vol);
 }
 
 static void output_main(void* machtnichts) {
