@@ -67,6 +67,7 @@ Encoder_Read(void)
 {
 	static const uint8_t map[16]={11, 12, 10, 9, 14, 13, 15, 16, 6, 5, 7, 8, 3, 4, 2, 1};
 
+	/* TODO: We only need a single read here. */
 	return map[pin_read(pin_ecn0) |
 	    (pin_read(pin_ecn1) << 1) |
 	    (pin_read(pin_ecn2) << 2) |
@@ -77,7 +78,8 @@ int
 VOL_Read(void)
 {
 	ADC_SoftwareStartConv(ADC1);
-	while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
+	//while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
+	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
 		vTaskDelay(1);
 	return ADC_GetConversionValue(ADC1);
 }
