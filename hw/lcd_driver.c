@@ -617,11 +617,10 @@ static void FSMC_Conf(void)
 	FSMC_NORSRAMInitStructure.FSMC_ReadWriteTimingStruct = &p;
 	FSMC_NORSRAMInitStructure.FSMC_WriteTimingStruct = &p;
 
-	FSMC_NORSRAMInit(&FSMC_NORSRAMInitStructure); 
+	FSMC_NORSRAMInit(&FSMC_NORSRAMInitStructure);
 
 	/* Enable FSMC Bank1_SRAM Bank */
 	FSMC_NORSRAMCmd(FSMC_Bank1_NORSRAM1, ENABLE);
-
 }
 
 void LCD_EnablePort(void)
@@ -638,6 +637,23 @@ void LCD_EnablePort(void)
 	    GPIO_Speed_100MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
 	gpio_output_setup(pin_lcd_bl->bank, pin_lcd_bl->pin, GPIO_Speed_100MHz,
 	    GPIO_OType_PP, GPIO_PuPd_NOPULL);
+	/* Prevent a glitch in the matrix */
+	gpio_output_setup(GPIOA, GPIO_Pin_6, GPIO_Speed_100MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
+	GPIO_ResetBits(GPIOA, GPIO_Pin_6);
+	gpio_output_setup(GPIOD, GPIO_Pin_2 | GPIO_Pin_3, GPIO_Speed_100MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
+	GPIO_ResetBits(GPIOD, GPIO_Pin_2 | GPIO_Pin_3);
+}
+
+__attribute__ ((noinline))
+void
+LCD_LongDelay(int ms)
+{
+	int i;
+
+	for (;ms; ms--) {
+		for (i=0; i<1630; i++)	// Just a guess... TODO
+			asm("NOP");
+	}
 }
 
 void LCD_Init(void)
@@ -650,11 +666,9 @@ void LCD_Init(void)
 	FSMC_Conf();
 
 	pin_reset(pin_lcd_rst);
-	vTaskDelay(20);
+	LCD_LongDelay(120);
 	pin_set(pin_lcd_rst);
-	vTaskDelay(30);
-	LCD_WriteCommand(LCD_CMD_SWRESET);
-	vTaskDelay(30);
+	LCD_LongDelay(120);
 
 	LCD_WriteCommand(LCD_CMD_COLMOD);
 	LCD_WriteData(0x05);	// 16bpp
@@ -715,9 +729,9 @@ void LCD_Init(void)
 	LCD_WriteCommand(0xef);
 	LCD_WriteCommand(0xe9);
 	LCD_WriteData(0x00);
-	vTaskDelay(20);
+	LCD_LongDelay(20);
 	LCD_WriteCommand(LCD_CMD_SLPOUT);
-	vTaskDelay(130);
+	LCD_LongDelay(130);
 	LCD_WriteCommand(LCD_CMD_DISPON);
 	LCD_WriteCommand(LCD_CMD_RAMWR);
 	LCD_ShortDelay();
