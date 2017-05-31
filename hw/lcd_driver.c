@@ -665,6 +665,8 @@ void LCD_Init(void)
 	LCD_EnablePort();
 	FSMC_Conf();
 
+	pin_reset(pin_lcd_cs);
+	LCD_ShortDelay();
 	pin_reset(pin_lcd_rst);
 	LCD_LongDelay(120);
 	pin_set(pin_lcd_rst);
