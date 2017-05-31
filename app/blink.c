@@ -81,7 +81,6 @@ led_set(int red, int green)
 	enc[10] = ev % 10 + 48;
 	usb_cdc_write(enc, 13);
 	lcd.x = lcd.y = 0;
-	LCD_EnablePort();
 	LCD_DrawString(&lcd, enc);
 	lcd.y = 8;
 	const char red_on[] = "red on,  ";

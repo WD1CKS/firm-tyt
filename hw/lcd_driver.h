@@ -1,3 +1,10 @@
+#ifndef _LCD_DRIVER_H_
+#define _LCD_DRIVER_H_
+
+#include "FreeRTOS.h"
+#include "queue.h"
+#include "semphr.h"
+
 // File:    md380tools/applet/src/lcd_driver.h
 // Author:  Wolf (DL4YHF) [initial version] 
 // Date:    2017-04-14 
@@ -144,9 +151,7 @@ typedef union T_RGB_Quad
 // Prototypes for LOW-LEVEL LCD driver functions 
 //---------------------------------------------------------------------------
 
-void LCD_WritePixels( uint16_t wColor, int nRepeats );
 void LimitInteger( int *piValue, int min, int max);
-int  LCD_SetOutputRect( int x1, int y1, int x2, int y2 );
 void LCD_SetPixelAt( int x, int y, uint16_t wColor ); // inefficient.. avoid if possible 
 
 void LCD_FillRect( // Draws a frame-less, solid, filled rectangle
@@ -204,5 +209,14 @@ int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... );
 
 void LCD_Init(void);
 void LCD_EnablePort(void);
+void LCD_ReleasePort(void);
+extern SemaphoreHandle_t LCD_Mutex;
+extern enum LCD_Enabled {
+	LCD_NOTYET,
+	LCD_ENABLED,
+	LCD_KEYPAD
+} LCD_Enabled;
 
 /* EOF < md380tools/applet/src/lcd_driver.h > */
+
+#endif
