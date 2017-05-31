@@ -49,7 +49,7 @@
 void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *usb_dev)
 {
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-  gpio_input_setup(USB_VBUS_PIN->bank, USB_VBUS_PIN->pin, GPIO_High_Speed, GPIO_PuPd_NOPULL);
+  gpio_input_setup(USB_VBUS_PIN->bank, USB_VBUS_PIN->pin, GPIO_PuPd_NOPULL);
 
   gpio_af_setup(USB_DM_PIN->bank, USB_DM_PIN->pin | USB_DP_PIN->pin,
     GPIO_AF_OTG_FS, GPIO_High_Speed, GPIO_OType_PP, GPIO_PuPd_NOPULL);

@@ -19,8 +19,8 @@ Controls_Init(void)
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
-	gpio_input_setup(GPIOB, GPIO_Pin_10 | GPIO_Pin_11, GPIO_High_Speed, GPIO_PuPd_NOPULL);
-	gpio_input_setup(GPIOE, GPIO_Pin_14 | GPIO_Pin_15 | GPIO_Pin_11, GPIO_High_Speed, GPIO_PuPd_NOPULL);
+	gpio_input_setup(GPIOB, GPIO_Pin_10 | GPIO_Pin_11, GPIO_PuPd_NOPULL);
+	gpio_input_setup(GPIOE, GPIO_Pin_14 | GPIO_Pin_15 | GPIO_Pin_11, GPIO_PuPd_NOPULL);
 
 	/* And the volume pot... */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
@@ -52,7 +52,7 @@ Power_As_Input(void)
 	gpio_output_setup(GPIOA, GPIO_Pin_7, GPIO_Low_Speed, GPIO_OType_PP, GPIO_PuPd_NOPULL);
 	pin_set(pin_a7);
 	/* Reads current power switch state */
-	gpio_input_setup(GPIOA, GPIO_Pin_1, GPIO_Low_Speed, GPIO_PuPd_NOPULL);
+	gpio_input_setup(GPIOA, GPIO_Pin_1, GPIO_PuPd_NOPULL);
 }
 
 void
@@ -99,8 +99,8 @@ keypad_read(void)
 
 	xSemaphoreTake(LCD_Mutex, portMAX_DELAY);
 	if (LCD_Enabled != LCD_KEYPAD) {
-		gpio_input_setup(GPIOD, GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_14 | GPIO_Pin_15, GPIO_Speed_50MHz, GPIO_PuPd_UP);
-		gpio_input_setup(GPIOE, GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10, GPIO_Speed_50MHz, GPIO_PuPd_UP);
+		gpio_input_setup(GPIOD, GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_14 | GPIO_Pin_15, GPIO_PuPd_UP);
+		gpio_input_setup(GPIOE, GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10, GPIO_PuPd_UP);
 		gpio_output_setup(GPIOA, GPIO_Pin_6, GPIO_Speed_50MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
 		gpio_output_setup(GPIOD, GPIO_Pin_2 | GPIO_Pin_3, GPIO_Speed_50MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
 		LCD_Enabled = LCD_KEYPAD;

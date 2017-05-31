@@ -16,7 +16,7 @@ struct gpio_pin_def {
 #define pin_toggle(p)		GPIO_ToggleBits((p)->bank, (p)->pin);
 
 
-void gpio_input_setup(GPIO_TypeDef* bank, uint16_t pins, GPIOSpeed_TypeDef speed, GPIOPuPd_TypeDef pupd);
+void gpio_input_setup(GPIO_TypeDef* bank, uint16_t pins, GPIOPuPd_TypeDef pupd);
 void gpio_af_setup(GPIO_TypeDef* bank, uint16_t pins, uint8_t af,
     GPIOSpeed_TypeDef speed, GPIOOType_TypeDef type,
     GPIOPuPd_TypeDef pupd);

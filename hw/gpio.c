@@ -36,12 +36,11 @@ DEFINE_BANK(H);
 DEFINE_BANK(I);
 
 void
-gpio_input_setup(GPIO_TypeDef* bank, uint16_t pins, GPIOSpeed_TypeDef speed, GPIOPuPd_TypeDef pupd)
+gpio_input_setup(GPIO_TypeDef* bank, uint16_t pins, GPIOPuPd_TypeDef pupd)
 {
 	GPIO_InitTypeDef def = {
 	    .GPIO_Pin = pins,
 	    .GPIO_Mode = GPIO_Mode_IN,
-	    .GPIO_Speed = speed,
 	    .GPIO_PuPd = pupd
 	};
 	GPIO_Init(bank, &def);
