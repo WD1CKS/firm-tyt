@@ -13,6 +13,8 @@ struct gpio_pin_def {
 #define pin_reset(p)		GPIO_WriteBit((p)->bank, (p)->pin, 0)
 #define pin_read(p)			GPIO_ReadInputDataBit((p)->bank, (p)->pin)
 #define pin_write(p, v)		GPIO_WriteBit((p)->bank, (p)->pin, v)
+#define pin_toggle(p)		GPIO_ToggleBits((p)->bank, (p)->pin);
+
 
 void gpio_input_setup(GPIO_TypeDef* bank, uint16_t pins, GPIOSpeed_TypeDef speed, GPIOPuPd_TypeDef pupd);
 void gpio_af_setup(GPIO_TypeDef* bank, uint16_t pins, uint8_t af,

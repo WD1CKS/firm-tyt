@@ -71,7 +71,6 @@ led_set(int red, int green)
 
 	red_led(red);
 	green_led(green);
-	pin_write(pin_lcd_bl, !red);
 
 	ev = Encoder_Read();
 	state = ev<<2 | (red?2:0) | (green?1:0);
@@ -95,6 +94,8 @@ led_set(int red, int green)
 	#undef SEND_STR
 	key = get_key();
 	if (key) {
+		if (key == '~')
+			pin_toggle(pin_lcd_bl);
 		sprintf(kp, "%d (%c)\n", key, isprint(key)?key:'.');
 		usb_cdc_write(kp, 11);
 	}
@@ -110,6 +111,7 @@ static void output_main(void* machtnichts) {
 	Controls_Init();
 	gpio_output_setup(pin_lcd_bl->bank, pin_lcd_bl->pin,
 	    GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
+	pin_set(pin_lcd_bl);
 	usb_cdc_init();
 
 	for(;;) {
