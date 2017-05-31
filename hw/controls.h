@@ -6,7 +6,7 @@
 
 void Controls_Init(void);
 uint8_t Encoder_Read(void);
-bool PTT_Read(void);
+uint8_t PTT_Read(void);
 uint32_t keypad_read(void);
 char get_key(void);
 void Power_As_Input(void);

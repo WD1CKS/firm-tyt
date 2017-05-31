@@ -84,10 +84,13 @@ VOL_Read(void)
 	return ADC_GetConversionValue(ADC1);
 }
 
-bool
+uint8_t
 PTT_Read(void)
 {
-	return !pin_read(pin_ptt);
+	uint8_t ret;
+	ret = !pin_read(pin_ptt);
+	ret |= (!pin_read(pin_extptt)) << 1;
+	return ret;
 }
 
 #include <stdio.h>

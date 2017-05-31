@@ -235,6 +235,7 @@ DECL_BANK(I);
 #define pin_bottom pin_e10
 #define pin_lcd_d7 pin_e10
 #define pin_ptt pin_e11
+#define pin_extptt pin_e12
 #define pin_ecn2 pin_e14
 #define pin_ecn1 pin_e15
 
