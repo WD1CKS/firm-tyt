@@ -589,7 +589,7 @@ int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... )
 /**************************************************************************/
 static void FSMC_Conf(void)
 {
-	FSMC_NORSRAMInitTypeDef  FSMC_NORSRAMInitStructure;
+	FSMC_NORSRAMInitTypeDef FSMC_NORSRAMInitStructure;
 	FSMC_NORSRAMTimingInitTypeDef  p;
 
 	/*-- FSMC Configuration ------------------------------------------------------*/
@@ -606,13 +606,13 @@ static void FSMC_Conf(void)
 	FSMC_NORSRAMInitStructure.FSMC_MemoryType = FSMC_MemoryType_NOR;
 	FSMC_NORSRAMInitStructure.FSMC_MemoryDataWidth = FSMC_MemoryDataWidth_16b;        /* MUST be 16b*/
 	FSMC_NORSRAMInitStructure.FSMC_BurstAccessMode = FSMC_BurstAccessMode_Disable;
-	FSMC_NORSRAMInitStructure.FSMC_AsynchronousWait= FSMC_AsynchronousWait_Disable;
 	FSMC_NORSRAMInitStructure.FSMC_WaitSignalPolarity = FSMC_WaitSignalPolarity_Low;  /* cf RM p363 + p384*/
 	FSMC_NORSRAMInitStructure.FSMC_WrapMode = FSMC_WrapMode_Disable;
 	FSMC_NORSRAMInitStructure.FSMC_WaitSignalActive = FSMC_WaitSignalActive_BeforeWaitState;
-	FSMC_NORSRAMInitStructure.FSMC_WriteOperation = FSMC_WriteOperation_Disable;
+	FSMC_NORSRAMInitStructure.FSMC_WriteOperation = FSMC_WriteOperation_Enable;
 	FSMC_NORSRAMInitStructure.FSMC_WaitSignal = FSMC_WaitSignal_Disable;
 	FSMC_NORSRAMInitStructure.FSMC_ExtendedMode = FSMC_ExtendedMode_Disable;
+	FSMC_NORSRAMInitStructure.FSMC_AsynchronousWait= FSMC_AsynchronousWait_Disable;
 	FSMC_NORSRAMInitStructure.FSMC_WriteBurst = FSMC_WriteBurst_Disable;
 	FSMC_NORSRAMInitStructure.FSMC_ReadWriteTimingStruct = &p;
 	FSMC_NORSRAMInitStructure.FSMC_WriteTimingStruct = &p;
