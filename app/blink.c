@@ -108,6 +108,7 @@ led_set(int red, int green)
 			lcd.y=40;
 			lcd.font = LCD_OPT_DOUBLE_WIDTH | LCD_OPT_DOUBLE_HEIGHT;
 			LCD_DrawString(&lcd, "\tFucker!");
+			lcd.font = 0;
 			vTaskDelay(1500);
 			Normal_Power();
 		}
