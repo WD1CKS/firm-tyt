@@ -38,11 +38,14 @@ SRCS=	blink.c \
   ASFLAGS=	-Wa,-a
   REDIR=	> firm-tyt.lst
 .endif
+.ifdef MD_390
+  CPPFLAGS+=	-DMD_390
+.endif
 CC=		arm-none-eabi-gcc
 AR=		arm-none-eabi-ar rcu
 OBJCOPY=	arm-none-eabi-objcopy
 RANLIB=		arm-none-eabi-ranlib
-CPPFLAGS=	-DUSE_USB_OTG_FS -I../FreeRTOS/Source/include/ -I../FreeRTOS/ -I../FreeRTOS/Source/portable/GCC/ARM_CM4F -Ilua/src -I../stdperiph -I../hw
+CPPFLAGS+=	-DUSE_USB_OTG_FS -I../FreeRTOS/Source/include/ -I../FreeRTOS/ -I../FreeRTOS/Source/portable/GCC/ARM_CM4F -Ilua/src -I../stdperiph -I../hw
 CFLAGS=		-g -fverbose-asm -O2 -flto -std=gnu99 -mthumb -mcpu=cortex-m4 -mthumb-interwork -mfloat-abi=hard -mfpu=fpv4-sp-d16
 LDFLAGS=	-Wl,--script=stm32f405_flash_app.lds,-Map=firm-tyt.map -L.
 .export

@@ -684,7 +684,11 @@ void LCD_Init(void)
 	LCD_WriteCommand(LCD_CMD_COLMOD);
 	LCD_WriteData(0x05);	// 16bpp
 	LCD_WriteCommand(LCD_CMD_MADCTL);
+#ifdef MD_390
 	LCD_WriteData(0xc8);
+#else
+	LCD_WriteData(0x08);
+#endif
 	LCD_WriteCommand(0xfe);
 	LCD_WriteCommand(0xef);
 	LCD_WriteCommand(LCD_CMD_INVCTR);

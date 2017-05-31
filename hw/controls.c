@@ -1,5 +1,8 @@
 #include <strings.h>	// ffs()
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #include "controls.h"
 #include "gpio.h"
 #include "stm32f4xx_rcc.h"
@@ -33,15 +36,6 @@ PTT_Read(void)
 	return !pin_read(pin_ptt);
 }
 
-static void
-keypad_delay(void)
-{
-	/* Double the minimum value for my radio */
-	for (uint32_t j = 0; j < 200; j += 4) {
-		asm volatile ("mov r0,r0");
-	}
-}
-
 #include <stdio.h>
 #include "lcd_driver.h"
 extern lcd_context_t lcd;
@@ -61,19 +55,19 @@ keypad_read(void)
 	}
 	GPIO_ResetBits(GPIOA, GPIO_Pin_6);
 	GPIO_SetBits(GPIOD, GPIO_Pin_2 | GPIO_Pin_3);
-	keypad_delay();
+	vTaskDelay(2);
 	gpios = GPIO_ReadInputData(GPIOD) & 0xc003;
 	gpios |= GPIO_ReadInputData(GPIOE) & 0x0780;
 	ret = gpios;
 	pin_set(pin_a6);
 	pin_reset(pin_d2);
-	keypad_delay();
+	vTaskDelay(2);
 	gpios = GPIO_ReadInputData(GPIOD) & 0xc003;
 	gpios |= GPIO_ReadInputData(GPIOE) & 0x0780;
 	ret |= gpios << 16;
 	pin_set(pin_d2);
 	pin_reset(pin_d3);
-	keypad_delay();
+	vTaskDelay(2);
 	if (pin_read(pin_e10))
 		ret |= 0x04;
 	if (pin_read(pin_e9))
