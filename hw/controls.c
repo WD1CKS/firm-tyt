@@ -78,7 +78,6 @@ int
 VOL_Read(void)
 {
 	ADC_SoftwareStartConv(ADC1);
-	//while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
 	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
 		vTaskDelay(1);
 	return ADC_GetConversionValue(ADC1);
