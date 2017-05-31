@@ -675,7 +675,7 @@ void LCD_Init(void)
 	LCD_WriteCommand(LCD_CMD_COLMOD);
 	LCD_WriteData(0x05);	// 16bpp
 	LCD_WriteCommand(LCD_CMD_MADCTL);
-	LCD_WriteData(0x08);	// 0100 1000 -- Left to Right refresh, BGR panel, Top to bottom refresh, No rotation, X reversed, Y normal
+	LCD_WriteData(0xc8);
 	LCD_WriteCommand(0xfe);
 	LCD_WriteCommand(0xef);
 	LCD_WriteCommand(LCD_CMD_INVCTR);
