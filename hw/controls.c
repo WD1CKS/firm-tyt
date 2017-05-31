@@ -107,7 +107,7 @@ get_key(void)
 	lcd.x = 0;
 	lcd.y = 32;
 	char kp[16];
-	sprintf(kp, "Key: %02x (%c)", keymap[key], keymap[key]);
+	sprintf(kp, "Key: 0x%02x (%c)", keymap[key], keymap[key]);
 	LCD_DrawString(&lcd, kp);
 	return keymap[key];
 }
