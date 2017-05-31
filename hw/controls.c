@@ -43,6 +43,10 @@ Controls_Init(void)
 
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_480Cycles);
 	ADC_Cmd(ADC1, ENABLE);
+
+	/* And run power to it? */
+	gpio_output_setup(pin_a14->bank, pin_a14->pin, GPIO_Low_Speed, GPIO_OType_PP, GPIO_PuPd_NOPULL);
+	pin_set(pin_a14);
 }
 
 void
