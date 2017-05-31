@@ -124,15 +124,18 @@ keypad_read(void)
 	pin_set(pin_d2);
 	pin_reset(pin_d3);
 	vTaskDelay(2);
+	/* TODO: Combine pin reads */
 	if (pin_read(pin_e10))
 		ret |= 0x04;
 	if (pin_read(pin_e9))
 		ret |= 0x040000;
 	pin_set(pin_d3);
 	xSemaphoreGive(LCD_Mutex);
-	ret |= (pin_read(pin_a1) << 4);
 	if (pin_read(pin_ptt))
 		ret |= 0x08;
+	if (pin_read(pin_extptt))
+		ret |= 0x10;
+	ret |= (pin_read(pin_a1) << 5);
 	lcd.x = 0;
 	lcd.y = 24;
 	char ks[16];
@@ -141,8 +144,8 @@ keypad_read(void)
 	return ret;
 }
 
-static uint32_t last_state = 0xc787c78f;
-static const char *keymap = "34MTP..560*...12\x19""7~....89#\x1b""...\n\x18";
+static uint32_t last_state = 0xc787c7cf;
+static const char *keymap = "34MTtP.560*...12\x19""7~....89#\x1b""...\n\x18";
 
 char
 get_key(void)
