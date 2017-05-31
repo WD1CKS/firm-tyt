@@ -107,7 +107,7 @@ led_set(int red, int green)
 			lcd.y=40;
 			lcd.font = LCD_OPT_DOUBLE_WIDTH | LCD_OPT_DOUBLE_HEIGHT;
 			LCD_DrawString(&lcd, "\tFucker!");
-			vTaskDelay(1500);Returned 
+			vTaskDelay(1500);//Returned 
 			pin_toggle(pin_a7);
 		}
 	}
