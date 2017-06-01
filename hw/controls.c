@@ -22,9 +22,10 @@ Controls_Init(void)
 	gpio_input_setup(GPIOB, GPIO_Pin_10 | GPIO_Pin_11, GPIO_PuPd_NOPULL);
 	gpio_input_setup(GPIOE, GPIO_Pin_14 | GPIO_Pin_15 | GPIO_Pin_11, GPIO_PuPd_NOPULL);
 
-	/* And the volume pot... */
+	/* And the volume pot, temp sensor, battery sensor, etc */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-	gpio_analog_setup(pin_a0->bank, pin_a0->pin, GPIO_PuPd_NOPULL);
+	ADC_TempSensorVrefintCmd(ENABLE);
+	gpio_analog_setup(pin_a0->bank, pin_a0->pin | pin_a1->pin, GPIO_PuPd_NOPULL);
 
 	aci.ADC_Mode = ADC_Mode_Independent;
 	aci.ADC_Prescaler = ADC_Prescaler_Div4;
@@ -41,7 +42,6 @@ Controls_Init(void)
 	ai.ADC_NbrOfConversion = 1;
 	ADC_Init(ADC1, &ai);
 
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_480Cycles);
 	ADC_Cmd(ADC1, ENABLE);
 }
 
@@ -77,6 +77,31 @@ Encoder_Read(void)
 int
 VOL_Read(void)
 {
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_480Cycles);
+	ADC_SoftwareStartConv(ADC1);
+	while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
+		vTaskDelay(1);
+	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
+		vTaskDelay(1);
+	return ADC_GetConversionValue(ADC1);
+}
+
+int
+BATT_Read(void)
+{
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_1, 1, ADC_SampleTime_480Cycles);
+	ADC_SoftwareStartConv(ADC1);
+	while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
+		vTaskDelay(1);
+	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
+		vTaskDelay(1);
+	return ADC_GetConversionValue(ADC1);
+}
+
+int
+Temp_Read(void)
+{
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_480Cycles);
 	ADC_SoftwareStartConv(ADC1);
 	while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
 		vTaskDelay(1);

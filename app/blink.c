@@ -69,7 +69,7 @@ led_set(int red, int green)
 	int ev;
 	int state;
 	char key;
-	int vol;
+	int val;
 
 	red_led(red);
 	green_led(green);
@@ -98,10 +98,16 @@ led_set(int red, int green)
 	SEND_STR(red?red_on:red_off);
 	SEND_STR(green?green_on:green_off);
 	#undef SEND_STR
-	vol = VOL_Read();
+	val = VOL_Read();
 	lcd.x = 0;
 	lcd.y += 8;
-	LCD_Printf(&lcd, "Vol: %d (%d)    \n", vol, VOL_Taper(vol));
+	LCD_Printf(&lcd, "Vol: %d (%d)    \n", val, VOL_Taper(val));
+	val = Temp_Read();
+	lcd.x = 0;
+	LCD_Printf(&lcd, "Temp: %d   \n", val);
+	val = BATT_Read();
+	lcd.x = 0;
+	LCD_Printf(&lcd, "Batt: %d   \n", val);
 	key = get_key();
 	if (key) {
 		if (key == '~')

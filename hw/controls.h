@@ -13,6 +13,9 @@ void Power_As_Input(void);
 void Normal_Power(void);
 int VOL_Read(void);
 int VOL_Taper(int vol);
+int BATT_Read(void);
+int Temp_Read(void);
+
 
 #define KEY_PTT		'T'
 #define KEY_TOP		'~'
