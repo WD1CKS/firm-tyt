@@ -154,7 +154,7 @@ static void output_main(void* machtnichts __attribute__((unused))) {
 	LCD_FastColourGradient();
 	vTaskDelay(250);
 	LCD_DrawBGRTransparent(wlarc_logo, 0, 0, 160, 128, 65535);
-	vTaskDelay(5000);
+	vTaskDelay(1000);
 
 	for(;;) {
 		led_set(get_red_state(), PTT_Read());
