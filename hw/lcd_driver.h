@@ -205,7 +205,8 @@ int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... );
   // Almost the same as LCD_DrawString,
   // but with all goodies supported by tinyprintf .
 
-void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h, int t);
+void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h);
+void LCD_DrawBGRTransparent(uint16_t *bgr, int x, int y, int w, int h, int t);
 
 void LCD_Init(void);
 void LCD_EnablePort(void);

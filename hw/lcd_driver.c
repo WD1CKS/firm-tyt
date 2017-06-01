@@ -294,7 +294,22 @@ void LCD_ColorGradientTest(void)
 	}
 }
 
-void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h, int t) {
+void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h) {
+	int xx, yy;
+	int i = 0;
+	LCD_EnablePort();
+	if (LCD_SetOutputRect(x, y, x + w - 1, y + h - 1) <= 0)
+		return;
+	for (xx = w; xx > 0; --xx) {
+		for (yy = 0; yy < h; ++yy) {
+			i = (w * yy) + xx;
+			LCD_WritePixels(bgr[i], 1);
+		}
+	}
+	LCD_ReleasePort();
+}
+
+void LCD_DrawBGRTransparent(uint16_t *bgr, int x, int y, int w, int h, int t) {
 	int xx, yy;
 	int i = 0;
 	for (yy = y; yy < y + h; ++yy) {
