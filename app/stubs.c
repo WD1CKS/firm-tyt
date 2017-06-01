@@ -5,6 +5,9 @@
 #undef errno
 extern int errno;
 
+/* This file is all about the stubs, suppress unused parameter warnings */
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 void
 _exit(int status)
 {

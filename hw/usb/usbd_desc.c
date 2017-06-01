@@ -188,7 +188,7 @@ __ALIGN_BEGIN uint8_t USBD_LangIDDesc[USB_SIZ_STRING_LANGID] __ALIGN_END =
 * @param  length : pointer to data length variable
 * @retval pointer to descriptor buffer
 */
-uint8_t *  USBD_USR_DeviceDescriptor( uint8_t speed , uint16_t *length)
+uint8_t *  USBD_USR_DeviceDescriptor( uint8_t speed __attribute__((unused)) , uint16_t *length)
 {
   *length = sizeof(USBD_DeviceDesc);
   return USBD_DeviceDesc;
@@ -201,7 +201,7 @@ uint8_t *  USBD_USR_DeviceDescriptor( uint8_t speed , uint16_t *length)
 * @param  length : pointer to data length variable
 * @retval pointer to descriptor buffer
 */
-uint8_t *  USBD_USR_LangIDStrDescriptor( uint8_t speed , uint16_t *length)
+uint8_t *  USBD_USR_LangIDStrDescriptor( uint8_t speed __attribute__((unused)) , uint16_t *length)
 {
   *length =  sizeof(USBD_LangIDDesc);  
   return USBD_LangIDDesc;
@@ -237,7 +237,7 @@ uint8_t *  USBD_USR_ProductStrDescriptor( uint8_t speed , uint16_t *length)
 * @param  length : pointer to data length variable
 * @retval pointer to descriptor buffer
 */
-uint8_t *  USBD_USR_ManufacturerStrDescriptor( uint8_t speed , uint16_t *length)
+uint8_t *  USBD_USR_ManufacturerStrDescriptor( uint8_t speed __attribute__((unused)) , uint16_t *length)
 {
   USBD_GetString (USBD_MANUFACTURER_STRING, USBD_StrDesc, length);
   return USBD_StrDesc;

@@ -107,7 +107,7 @@ static uint16_t VCP_DeInit(void)
   * @param  Len: Number of data to be sent (in bytes)
   * @retval Result of the opeartion (USBD_OK in all cases)
   */
-static uint16_t VCP_Ctrl (uint32_t Cmd, uint8_t* Buf, uint32_t Len)
+static uint16_t VCP_Ctrl (uint32_t Cmd, uint8_t* Buf, uint32_t Len __attribute__((unused)))
 {
   switch (Cmd)
   {
@@ -219,9 +219,9 @@ void VCP_Init(void)
   g_rx_queue = xQueueCreate(RX_QUEUE_LEN, 1);
 }
 
-int32_t VCP_Read(uint8_t *buf, uint32_t len, TickType_t timeout)
+uint32_t VCP_Read(uint8_t *buf, uint32_t len, TickType_t timeout)
 {
-  int32_t i;
+  uint32_t i;
 
   for (i = 0; i < len; ++i, ++buf) {
     if (!xQueueReceive(g_rx_queue, buf, timeout))

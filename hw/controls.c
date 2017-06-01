@@ -141,7 +141,7 @@ keypad_read(void)
 	lcd.x = 0;
 	lcd.y = 24;
 	char ks[16];
-	sprintf(ks, "Keys: %08x", ret);
+	sprintf(ks, "Keys: %08" PRIx32, ret);
 	LCD_DrawString(&lcd, ks);
 	return ret;
 }

@@ -123,7 +123,7 @@ led_set(int red, int green)
 	}
 }
 
-static void output_main(void* machtnichts) {
+static void output_main(void* machtnichts __attribute__((unused))) {
 	led_setup();
         LCD_Init();
         LCD_InitContext(&lcd);
@@ -145,7 +145,7 @@ static void output_main(void* machtnichts) {
 	}
 }
 
-static void red_main(void* machtnichts) {
+static void red_main(void* machtnichts __attribute__((unused))) {
 
 	for(;;){
 		set_red_state(0);

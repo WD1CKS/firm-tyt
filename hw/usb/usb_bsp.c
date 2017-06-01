@@ -46,7 +46,7 @@
  * @param  None
  * @retval None
  */
-void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *usb_dev)
+void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *usb_dev __attribute__((unused)))
 {
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
   gpio_input_setup(USB_VBUS_PIN->bank, USB_VBUS_PIN->pin, GPIO_PuPd_NOPULL);
@@ -65,7 +65,7 @@ void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *usb_dev)
  * @param  None
  * @retval None
  */
-void USB_OTG_BSP_EnableInterrupt(USB_OTG_CORE_HANDLE *pdev)
+void USB_OTG_BSP_EnableInterrupt(USB_OTG_CORE_HANDLE *pdev __attribute__((unused)))
 {
   NVIC_EnableIRQ(OTG_FS_IRQn);
 }
