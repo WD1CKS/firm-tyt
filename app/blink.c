@@ -10,6 +10,7 @@
 #include "controls.h"
 #include "gpio.h"
 #include "lcd_driver.h"
+#include "images/wlarc.h"
 
 #ifdef CODEPLUGS
 #include "lua.h"
@@ -105,13 +106,16 @@ led_set(int red, int green)
 	if (key) {
 		if (key == '~')
 			pin_toggle(pin_lcd_bl);
+		if (key == 'M')
+			LCD_DrawBGR(wlarc_logo, 0, 0, 160, 128, 65535);
 		sprintf(kp, "%d (%c)\n", key, isprint(key)?key:'.');
 		usb_cdc_write(kp, 11);
 		if (key == 'P') {	// Power off
-			lcd.x=0;
-			lcd.y=56;
-			lcd.font = LCD_OPT_DOUBLE_WIDTH | LCD_OPT_DOUBLE_HEIGHT;
-			LCD_DrawString(&lcd, "\tFucker!");
+			// lcd.x=0;
+			// lcd.y=56;
+			// lcd.font = LCD_OPT_DOUBLE_WIDTH | LCD_OPT_DOUBLE_HEIGHT;
+			// LCD_DrawString(&lcd, "\tFucker!");
+			LCD_DrawBGR(wlarc_logo, 0, 0, 160, 128, -1);
 			lcd.font = 0;
 			vTaskDelay(1500);
 			Normal_Power();
@@ -125,13 +129,15 @@ static void output_main(void* machtnichts) {
         LCD_InitContext(&lcd);
         lcd.fg_color = LCD_COLOR_BLACK;
         lcd.bg_color = LCD_COLOR_WHITE;
-	LCD_ColorGradientTest();
 	Controls_Init();
 	gpio_output_setup(pin_lcd_bl->bank, pin_lcd_bl->pin,
 	    GPIO_Speed_2MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL);
 	pin_set(pin_lcd_bl);
 	usb_cdc_init();
 	Power_As_Input();
+	LCD_DrawBGR(wlarc_logo, 0, 0, 160, 128, -1);
+	vTaskDelay(3000);
+	LCD_ColorGradientTest();
 
 	for(;;) {
 		led_set(get_red_state(), PTT_Read());
