@@ -141,9 +141,9 @@ static void output_main(void* machtnichts __attribute__((unused))) {
 	pin_set(pin_lcd_bl);
 	usb_cdc_init();
 	Power_As_Input();
-	LCD_DrawBGR(wlarc_logo, 0, 0, 160, 128);
+	LCD_FastColourGradient();
+	LCD_DrawBGRTransparent(wlarc_logo, 0, 0, 160, 128, 65535);
 	vTaskDelay(3000);
-	LCD_ColorGradientTest();
 
 	for(;;) {
 		led_set(get_red_state(), PTT_Read());

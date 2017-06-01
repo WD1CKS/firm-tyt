@@ -162,6 +162,7 @@ void LCD_HorzLine( int x1, int y, int x2, uint16_t wColor );
 
 void LCD_ColorGradientTest(void); // Fills the framebuffer with a
   // 2D color gradient. Used for testing .. details in lcd_driver.c .
+void LCD_FastColourGradient(void);
 
 uint8_t *LCD_GetFontPixelPtr_8x8( uint8_t c);
   // Retrieves the address of a character's font bitmap, 8 * 8 pixels .

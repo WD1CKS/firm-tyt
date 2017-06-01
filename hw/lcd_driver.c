@@ -294,6 +294,21 @@ void LCD_ColorGradientTest(void)
 	}
 }
 
+void LCD_FastColourGradient(void) {
+	int x, y;
+	uint16_t px;
+	LCD_EnablePort();
+	LCD_SetOutputRect(0, 0, LCD_SCREEN_WIDTH - 1, LCD_SCREEN_HEIGHT - 1);
+	for (x = LCD_SCREEN_WIDTH - 1; x >= 0; --x) {
+		for (y = 0; y < LCD_SCREEN_HEIGHT; ++y) {
+			px = (x/5)|((63-(2*x)/5)<<5)|((y/4)<<11);
+			LCD_WriteData(px>>8);
+			LCD_WriteData(px&255);
+		}
+	}
+	LCD_ReleasePort();
+}
+
 void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h) {
 	int xx, yy;
 	int i = 0;
@@ -313,8 +328,8 @@ void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h) {
 void LCD_DrawBGRTransparent(uint16_t *bgr, int x, int y, int w, int h, int t) {
 	int xx, yy;
 	int i = 0;
-	for (yy = y; yy < y + h; ++yy) {
-		for (xx = x; xx < x + w; ++xx) {
+	for (yy = y; yy < y + h && yy < LCD_SCREEN_HEIGHT; ++yy) {
+		for (xx = x; xx < x + w && xx < LCD_SCREEN_WIDTH; ++xx) {
 			if (bgr[i] != t)
 				LCD_SetPixelAt( xx, yy, bgr[i] );
 			++i;
