@@ -142,6 +142,13 @@ static void output_main(void* machtnichts __attribute__((unused))) {
 	usb_cdc_init();
 	Power_As_Input();
 	LCD_FastColourGradient();
+	int n;
+	for (n = 1; n < 80; ++n) {
+		LCD_DrawCircle(79, 63, n, 65535);
+		vTaskDelay(5);
+	}
+	vTaskDelay(1500);
+	LCD_FastColourGradient();
 	LCD_DrawBGRTransparent(wlarc_logo, 0, 0, 160, 128, 65535);
 	vTaskDelay(3000);
 

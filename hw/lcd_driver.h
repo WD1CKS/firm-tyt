@@ -208,6 +208,7 @@ int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... );
 
 void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h);
 void LCD_DrawBGRTransparent(uint16_t *bgr, int x, int y, int w, int h, int t);
+void LCD_DrawCircle(int x, int y, int r, uint16_t c);
 
 void LCD_Init(void);
 void LCD_EnablePort(void);

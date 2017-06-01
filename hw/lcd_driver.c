@@ -337,6 +337,29 @@ void LCD_DrawBGRTransparent(uint16_t *bgr, int x, int y, int w, int h, int t) {
 	}
 }
 
+void LCD_DrawCircle(int x, int y, int r, uint16_t c) {
+	int X = 0;
+	int Y = r;
+	int D = 3 - (2 * r);
+	while (X < Y) {
+		LCD_SetPixelAt(x + X, y + Y, c);
+		LCD_SetPixelAt(x - X, y + Y, c);
+		LCD_SetPixelAt(x + X, y - Y, c);
+		LCD_SetPixelAt(x - X, y - Y, c);
+		LCD_SetPixelAt(x + Y, y + X, c);
+		LCD_SetPixelAt(x - Y, y + X, c);
+		LCD_SetPixelAt(x + Y, y - X, c);
+		LCD_SetPixelAt(x - Y, y - X, c);
+		++X;
+		if (D < 0) {
+			D = D + (4 * X) + 6;
+		} else {
+			--Y;
+			D = D + (4 * (X - Y)) + 10;
+		}
+	}
+}
+
   // Converts a 'native' colour (in the display's hardware-specific format)
   // into red, green, and blue component; each ranging from 0 to ~~255 .
 uint32_t
