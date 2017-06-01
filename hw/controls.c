@@ -85,6 +85,20 @@ VOL_Read(void)
 	return ADC_GetConversionValue(ADC1);
 }
 
+/* Applies the taper to generate a 1-10 number */
+int
+VOL_Taper(int vol)
+{
+	if (vol < 350)
+		return (vol/70)+1;
+	vol-=350;
+	vol /= 330;
+	vol += 6;
+	if (vol > 10)
+		vol = 10;
+	return vol;
+}
+
 uint8_t
 PTT_Read(void)
 {

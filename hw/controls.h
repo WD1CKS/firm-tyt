@@ -12,7 +12,7 @@ char get_key(void);
 void Power_As_Input(void);
 void Normal_Power(void);
 int VOL_Read(void);
-
+int VOL_Taper(int vol);
 
 #define KEY_PTT		'T'
 #define KEY_TOP		'~'
