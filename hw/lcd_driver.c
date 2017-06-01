@@ -384,6 +384,28 @@ void LCD_DrawRectangle(int x, int y, int w, int h, uint16_t c, bool f) {
 	}
 }
 
+// Top left coordinates x, y; terminal coordinates xx, yy; BGR colour c
+void LCD_DrawLine(int x, int y, int xx, int yy, uint16_t c) {
+	uint8_t dx = xx - x;
+	uint8_t dy = yy - y;
+	int sx = x < xx ? 1 : -1;
+	int sy = y < yy ? 1 : -1;
+	int err = dx - dy;
+	int e2;
+	do {
+		LCD_SetPixelAt(x, y, c);
+		e2 = 2 * err;
+		if (e2 > -dy) {
+			err -= dy;
+			x += sx;
+		}
+		if (e2 < dx) {
+			err += dx;
+			y += sy;
+		}
+	} while (x != xx || y != yy);
+}
+
   // Converts a 'native' colour (in the display's hardware-specific format)
   // into red, green, and blue component; each ranging from 0 to ~~255 .
 uint32_t

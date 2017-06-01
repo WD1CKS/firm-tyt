@@ -144,9 +144,11 @@ static void output_main(void* machtnichts __attribute__((unused))) {
 	// gfx bullshit
 	LCD_FastColourGradient();
 	LCD_DrawCircle(79, 63, 64, 65535, true);
-	vTaskDelay(1500);
+	vTaskDelay(1000);
 	LCD_DrawRectangle(10, 10, 140, 108, 0, true);
-	vTaskDelay(1500);
+	vTaskDelay(1000);
+	LCD_DrawLine(0, 0, 160, 128, 65535);
+	vTaskDelay(1000);
 	LCD_FastColourGradient();
 	LCD_DrawBGRTransparent(wlarc_logo, 0, 0, 160, 128, 65535);
 	vTaskDelay(3000);
