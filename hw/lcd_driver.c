@@ -337,7 +337,9 @@ void LCD_DrawBGRTransparent(uint16_t *bgr, int x, int y, int w, int h, int t) {
 	}
 }
 
-void LCD_DrawCircle(int x, int y, int r, uint16_t c) {
+// Centre coordinates x, y; radius r; BGR colour c; fill f
+void LCD_DrawCircle(int x, int y, int r, uint16_t c, bool f) {
+	int xx;
 	int X = 0;
 	int Y = r;
 	int D = 3 - (2 * r);
@@ -350,12 +352,34 @@ void LCD_DrawCircle(int x, int y, int r, uint16_t c) {
 		LCD_SetPixelAt(x - Y, y + X, c);
 		LCD_SetPixelAt(x + Y, y - X, c);
 		LCD_SetPixelAt(x - Y, y - X, c);
+		if (f) {
+			for (xx = x - X + 1; xx < x + X; ++xx) {
+				LCD_SetPixelAt(xx, y + Y, c);
+				LCD_SetPixelAt(xx, y - Y, c);
+			}
+			for (xx = x - Y + 1; xx < x + Y; ++xx) {
+				LCD_SetPixelAt(xx, y + X, c);
+				LCD_SetPixelAt(xx, y - X, c);
+			}
+		}
 		++X;
 		if (D < 0) {
 			D = D + (4 * X) + 6;
 		} else {
 			--Y;
 			D = D + (4 * (X - Y)) + 10;
+		}
+	}
+}
+
+// Top left coordinates x, y; width w; height h; BGR colour c; fill f
+void LCD_DrawRectangle(int x, int y, int w, int h, uint16_t c, bool f) {
+	int xx, yy;
+	for (yy = 0; yy < h; yy++) {
+		for (xx = 0; xx < w; xx++) {
+			if (f || yy == 0 || yy == h - 1 || xx == 0 || xx == w - 1) {
+				LCD_SetPixelAt(x + xx, y + yy, c);
+			}
 		}
 	}
 }

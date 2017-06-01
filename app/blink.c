@@ -141,12 +141,11 @@ static void output_main(void* machtnichts __attribute__((unused))) {
 	pin_set(pin_lcd_bl);
 	usb_cdc_init();
 	Power_As_Input();
+	// gfx bullshit
 	LCD_FastColourGradient();
-	int n;
-	for (n = 1; n < 80; ++n) {
-		LCD_DrawCircle(79, 63, n, 65535);
-		vTaskDelay(5);
-	}
+	LCD_DrawCircle(79, 63, 64, 65535, true);
+	vTaskDelay(1500);
+	LCD_DrawRectangle(10, 10, 140, 108, 0, true);
 	vTaskDelay(1500);
 	LCD_FastColourGradient();
 	LCD_DrawBGRTransparent(wlarc_logo, 0, 0, 160, 128, 65535);
