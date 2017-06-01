@@ -29,10 +29,6 @@ SRCS=	blink.c \
 	../stdperiph/stm32f4xx_gpio.c \
 	../stdperiph/stm32f4xx_rcc.c \
 	../stdperiph/startup_stm32f40xx.s
-	#fonts/font_8_8.c \
-	#../hw/lcd_driver.c \
-	#../hw/rcc.c \
-	#../hw/interrupt.c \
 
 # This is a terrible thing to do...
 .ifdef GENLIST
