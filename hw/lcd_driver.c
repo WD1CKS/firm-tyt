@@ -303,7 +303,9 @@ void LCD_FastColourGradient(void) {
 		for (y = 0; y < LCD_SCREEN_HEIGHT; ++y) {
 			px = (x/5)|((63-(2*x)/5)<<5)|((y/4)<<11);
 			LCD_WriteData(px>>8);
+			LCD_ShortDelay();
 			LCD_WriteData(px&255);
+			LCD_ShortDelay();
 		}
 	}
 	LCD_ReleasePort();
@@ -319,7 +321,9 @@ void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h) {
 		for (yy = 0; yy < h; ++yy) {
 			i = (w * yy) + xx;
 			LCD_WriteData(bgr[i]>>8);
+			LCD_ShortDelay();
 			LCD_WriteData(bgr[i]&255);
+			LCD_ShortDelay();
 		}
 	}
 	LCD_ReleasePort();
