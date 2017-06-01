@@ -27,7 +27,7 @@ Controls_Init(void)
 	gpio_analog_setup(pin_a0->bank, pin_a0->pin, GPIO_PuPd_NOPULL);
 
 	aci.ADC_Mode = ADC_Mode_Independent;
-	aci.ADC_Prescaler = ADC_Prescaler_Div2;
+	aci.ADC_Prescaler = ADC_Prescaler_Div4;
 	aci.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
 	aci.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 	ADC_CommonInit(&aci);
@@ -78,6 +78,8 @@ int
 VOL_Read(void)
 {
 	ADC_SoftwareStartConv(ADC1);
+	while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
+		vTaskDelay(1);
 	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
 		vTaskDelay(1);
 	return ADC_GetConversionValue(ADC1);
