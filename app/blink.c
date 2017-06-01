@@ -76,31 +76,31 @@ led_set(int red, int green)
 
 	ev = Encoder_Read();
 	state = ev<<2 | (red?2:0) | (green?1:0);
-	if (state == last_state)
-		return;
-	last_state = state;
-	enc[9] = ev / 10 + 48;
-	enc[10] = ev % 10 + 48;
-	usb_cdc_write(enc, 13);
-	lcd.x = lcd.y = 0;
-	LCD_DrawString(&lcd, enc);
-	lcd.y = 8;
-	const char red_on[] = "red on,  ";
-	const char red_off[] = "red off, ";
-	const char green_on[] = "green on\n";
-	const char green_off[] = "green off\n";
-        #define SEND_STR(s) { \
-                usb_cdc_write((void*)(s), strlen(s)); \
-                lcd.x = 0; \
-                LCD_DrawString(&lcd, s); \
-                lcd.y += 8; \
-        }
-	SEND_STR(red?red_on:red_off);
-	SEND_STR(green?green_on:green_off);
-	#undef SEND_STR
+	if (state != last_state) {
+		last_state = state;
+		enc[9] = ev / 10 + 48;
+		enc[10] = ev % 10 + 48;
+		usb_cdc_write(enc, 13);
+		lcd.x = lcd.y = 0;
+		LCD_DrawString(&lcd, enc);
+		lcd.y = 8;
+		const char red_on[] = "red on,  ";
+		const char red_off[] = "red off, ";
+		const char green_on[] = "green on\n";
+		const char green_off[] = "green off\n";
+        	#define SEND_STR(s) { \
+        	        usb_cdc_write((void*)(s), strlen(s)); \
+        	        lcd.x = 0; \
+        	        LCD_DrawString(&lcd, s); \
+        	        lcd.y += 8; \
+		}
+		SEND_STR(red?red_on:red_off);
+		SEND_STR(green?green_on:green_off);
+		#undef SEND_STR
+	}
 	val = VOL_Read();
 	lcd.x = 0;
-	lcd.y += 8;
+	lcd.y = 24;
 	LCD_Printf(&lcd, "Vol: %d (%d)    \n", val, VOL_Taper(val));
 	val = Temp_Read();
 	lcd.x = 0;
