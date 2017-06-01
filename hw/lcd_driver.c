@@ -303,7 +303,8 @@ void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h) {
 	for (xx = w; xx > 0; --xx) {
 		for (yy = 0; yy < h; ++yy) {
 			i = (w * yy) + xx;
-			LCD_WritePixels(bgr[i], 1);
+			LCD_WriteData(bgr[i]>>8);
+			LCD_WriteData(bgr[i]&255);
 		}
 	}
 	LCD_ReleasePort();
