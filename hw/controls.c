@@ -1,6 +1,8 @@
 #include <strings.h>	// ffs()
 
 #include "FreeRTOS.h"
+#include "queue.h"
+#include "semphr.h"
 #include "task.h"
 
 #include "controls.h"
@@ -8,6 +10,8 @@
 #include "stm32f4xx_rcc.h"
 #include "stm32f4xx_adc.h"
 #include "usb_cdc.h"
+
+static SemaphoreHandle_t ADC1_Mutex;
 
 void
 Controls_Init(void)
@@ -23,6 +27,7 @@ Controls_Init(void)
 	gpio_input_setup(GPIOE, GPIO_Pin_14 | GPIO_Pin_15 | GPIO_Pin_11, GPIO_PuPd_NOPULL);
 
 	/* And the volume pot, temp sensor, battery sensor, etc */
+	ADC1_Mutex = xSemaphoreCreateMutex();
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
 	ADC_TempSensorVrefintCmd(ENABLE);
 	gpio_analog_setup(pin_a0->bank, pin_a0->pin | pin_a1->pin, GPIO_PuPd_NOPULL);
@@ -74,40 +79,39 @@ Encoder_Read(void)
 	    (pin_read(pin_ecn3) << 3)];
 }
 
-int
-VOL_Read(void)
+static int
+ADC1_Read(uint8_t chan)
 {
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_480Cycles);
+	int ret;
+
+	xSemaphoreTake(ADC1_Mutex, portMAX_DELAY);
+	ADC_RegularChannelConfig(ADC1, chan, 1, ADC_SampleTime_480Cycles);
 	ADC_SoftwareStartConv(ADC1);
 	while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
 		vTaskDelay(1);
 	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
 		vTaskDelay(1);
-	return ADC_GetConversionValue(ADC1);
+	ret = ADC_GetConversionValue(ADC1);
+	xSemaphoreGive(ADC1_Mutex);
+	return ret;
+}
+
+int
+VOL_Read(void)
+{
+	return ADC1_Read(ADC_Channel_0);
 }
 
 int
 BATT_Read(void)
 {
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_1, 1, ADC_SampleTime_480Cycles);
-	ADC_SoftwareStartConv(ADC1);
-	while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
-		vTaskDelay(1);
-	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
-		vTaskDelay(1);
-	return ADC_GetConversionValue(ADC1);
+	return ADC1_Read(ADC_Channel_1);
 }
 
 int
 Temp_Read(void)
 {
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_480Cycles);
-	ADC_SoftwareStartConv(ADC1);
-	while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
-		vTaskDelay(1);
-	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
-		vTaskDelay(1);
-	return ADC_GetConversionValue(ADC1);
+	return ADC1_Read(ADC_Channel_16);
 }
 
 /* Applies the taper to generate a 1-10 number */
