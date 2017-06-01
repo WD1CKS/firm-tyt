@@ -101,7 +101,7 @@ led_set(int red, int green)
 	vol = VOL_Read();
 	lcd.x = 0;
 	lcd.y += 8;
-	LCD_Printf(&lcd, "Vol: %d\n", vol);
+	LCD_Printf(&lcd, "Vol: %d   \n", vol);
 	key = get_key();
 	if (key) {
 		if (key == '~')
