@@ -1,19 +1,19 @@
 // File:    md380tools/applet/src/lcd_driver.c
-// Author:  Wolf (DL4YHF) [initial version] 
-// Date:    2017-04-14 
+// Author:  Wolf (DL4YHF) [initial version]
+// Date:    2017-04-14
 //  Implements a simple LCD driver for ST7735-compatible controllers,
 //             tailored for Retevis RT3 / Tytera MD380 / etc .
 //  Works much better (!) than the stock driver in the original firmware
 //             as far as speed and QRM(!) from the display cable is concerned.
 //  Written for the 'alternative setup menu', but no dependcies from that,
 //  thus may also be used to replace the 'console' display for Netmon & Co.
-// 
+//
 // To include this alternative LCD driver in the patched firmware,
 //   add the following lines in applet/Makefile :
 //      SRCS += lcd_driver.o
 //      SRCS += lcd_fonts.o
 //      SRCS += font_8_8.o
-//  
+//
 
 #include <stm32f4xx.h>
 #include <stdint.h>
@@ -74,19 +74,19 @@ LCD_WriteData( uint8_t bData )
   //  2 accesses per pixel in THIS implementation.
 static void
 LCD_WritePixels( uint16_t wColor, int nRepeats )
-{ 
+{
 	while( nRepeats-- ) {
-		// ST7735 datasheet V2.1 page 39, "8-bit data bus for 16-bit/pixel,  
+		// ST7735 datasheet V2.1 page 39, "8-bit data bus for 16-bit/pixel,
 		//                 (RGB 5-6-5-bit input), 65K-Colors, Reg 0x3A = 0x05 " :
-		LCD_WriteData( wColor >> 8 );  // 5 "blue" bits + 3 upper "green" bits  
+		LCD_WriteData( wColor >> 8 );  // 5 "blue" bits + 3 upper "green" bits
 		// __NOP;     // some delay between these two 8-bit transfers ?
 		LCD_WriteData( wColor );       // 3 lower green bits + 5 "red" bits
-		// Don't de-assert LCD_CS here yet ! In a character, 
+		// Don't de-assert LCD_CS here yet ! In a character,
 		// more pixels will be emitted into the same output rectangle
 	}
 }
 
-__attribute__ ((noinline)) 
+__attribute__ ((noinline))
 void
 LCD_ShortDelay(void) // for ST7735 chip sel
 {
@@ -132,7 +132,7 @@ LCD_SetOutputRect( int x1, int y1, int x2, int y2 )
 	}
 
 #if(0)
-	// one would expect this... 
+	// one would expect this...
 	caset_xs = x1;
 	caset_xe = x2;
 	raset_ys = y1;
@@ -142,11 +142,11 @@ LCD_SetOutputRect( int x1, int y1, int x2, int y2 )
 	caset_xs = y1;
 	caset_xe = y2;
 	raset_ys = 159-x2;  // low  'start' value
-	raset_ye = 159-x1;  // high 'end' value  
+	raset_ye = 159-x1;  // high 'end' value
 #endif
 
 	LCD_WriteCommand( 0x2A ); // ST7735 DS V2.1 page 100 : "CASET" ....
-	// ... but beware: 'columns' and 'rows' from the ST7735's 
+	// ... but beware: 'columns' and 'rows' from the ST7735's
 	//     point of view must be swapped, because the display initialisation
 	//     (which still only takes place in TYTERA's part of the firmware),
 	//     the possibility of rotating the display by 90° BY THE LCD CONTROLLER
@@ -158,8 +158,8 @@ LCD_SetOutputRect( int x1, int y1, int x2, int y2 )
 	//     how to control "Memory Data Write/Read Direction" via 'MADCTL' .
 	//     The use the term "X-Y Exchange" for a rotated display,
 	//     and there are EIGHT combinations of 'Mirror' and 'Exchange'.
-	//     
-	// The original firmware (D13.020 @ 0x08033590) uses different 'MADCTL' 
+	//
+	// The original firmware (D13.020 @ 0x08033590) uses different 'MADCTL'
 	//     settings, depending on some setting in SPI-Flash (?):
 	//  * 0x08 for one type of display     : MADCTL.MY=0, MX=0, MV=0, ML=0, RGB=1
 	//  * 0x48 for another type of display : MADCTL.MY=0, MX=1, MV=0, ML=0, RGB=1
@@ -192,17 +192,17 @@ LCD_SetOutputRect( int x1, int y1, int x2, int y2 )
 void
 LCD_SetPixelAt( int x, int y, uint16_t wColor )
 {
-	// Timing measured with the original firmware (D13.020), 
+	// Timing measured with the original firmware (D13.020),
 	//  when setting a single pixel. Similar result with the C code below.
 	//           __________   _   _   _   _   _   _   _   _   _________
 	// /LCD_WR :           |_| |_| |_| |_| |_| |_| |_| |_| |_|
-	//           ____       1   2   3   4   5   6   7   8   9   _____  
+	//           ____       1   2   3   4   5   6   7   8   9   _____
 	// /LCD_CS :     |_________________________________________|
-	// 
+	//
 	//               |<-a->|<----------- 1.36 us ----------->|b|
 	//               |<--------------- 1.93 us --------------->|
-	//                   ->| |<- t_WR_low ~ 70ns             
-	//             
+	//                   ->| |<- t_WR_low ~ 70ns
+	//
 	LCD_EnablePort();
 	LCD_WriteCommand( 0x2A ); // (1) ST7735 DS V2.1 page 100 : "CASET" ....
 	// ... but there's something strange in Tytera's firmware,
@@ -241,9 +241,9 @@ void LCD_FillRect(
 	int nPixels;
 
 	LCD_EnablePort();
-	// This function is MUCH faster than Tytera's 'gfx_blockfill' 
+	// This function is MUCH faster than Tytera's 'gfx_blockfill'
 	//  (or whatever the original name was), because the rectangle coordinates
-	// are only sent to the display controller ONCE, instead of sending 
+	// are only sent to the display controller ONCE, instead of sending
 	// a new coordinate for each stupid pixel (which is what the original FW did):
 	nPixels = LCD_SetOutputRect( x1, y1, x2, y2 );  // send rectangle coordinates only ONCE
 
@@ -276,20 +276,32 @@ void LCD_HorzLine(int x1, int y, int x2, uint16_t wColor)
   //       '----------------' - y=127
   //       |                |
   //      x=0              x=159
-  // 
+  //
 void LCD_ColorGradientTest(void)
 {
 	int x,y;
 	for(y=0; y<128; ++y) {
 		for(x=0; x<160; ++x) {
 			// 'Native' colour format, found by trial-and-error:
-			//   BGR565 = 32 levels of BLUE  (in bits 15..11), 
+			//   BGR565 = 32 levels of BLUE  (in bits 15..11),
 			//            64 levels of GREEN (in bits 10..5),
 			//            32 levels of RED   (in bits 4..0).
-			LCD_SetPixelAt( x,y, 
+			LCD_SetPixelAt( x,y,
 			    (x/5) |         // increasing from left to right: RED
 			    ((63-(2*x)/5)<<5) // increasing from right to left: GREEN
 			    |((y/4)<<11) );   // increasing from top to bottom: BLUE
+		}
+	}
+}
+
+void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h, int t) {
+	int xx, yy;
+	int i = 0;
+	for (yy = y; yy < y + h; ++yy) {
+		for (xx = x; xx < x + w; ++xx) {
+			if (bgr[i] != t)
+				LCD_SetPixelAt( xx, yy, bgr[i] );
+			++i;
 		}
 	}
 }
@@ -303,7 +315,7 @@ LCD_NativeColorToRGB( uint16_t native_color )
 	int i;
 	i = (native_color & LCD_COLOR_RED) >> LCD_COLORBIT0_RED; // -> 0..31 (5 'red bits' only)
 	i = (255*i) / 31;
-	rgb.s.r = (uint8_t)i; 
+	rgb.s.r = (uint8_t)i;
 	i = (native_color & LCD_COLOR_GREEN)>> LCD_COLORBIT0_GREEN; // -> 0..63 (6 'green bits')
 	i = (255*i) / 63;
 	rgb.s.g = (uint8_t)i;
@@ -322,14 +334,14 @@ LCD_RGBToNativeColor( uint32_t u32RGB )
 {
 	rgb_quad_t rgb;
 	rgb.u32 = u32RGB;
-	return ((uint16_t)(rgb.s.r & 0xF8) >> 3)  // red  : move bits 7..3 into b 4..0 
+	return ((uint16_t)(rgb.s.r & 0xF8) >> 3)  // red  : move bits 7..3 into b 4..0
 	    | ((uint16_t)(rgb.s.g & 0xFC) << 3)  // green: move bits 7..2 into b 10..5
 	    | ((uint16_t)(rgb.s.b & 0xF8) << 8); // blue : move bits 7..3 into b 15..11
 }
 
   // Crude measure for the "similarity" of two colours:
-  // Colours are split into R,G,B (range 0..255 each), 
-  // then absolute differences added. 
+  // Colours are split into R,G,B (range 0..255 each),
+  // then absolute differences added.
   // Theoretic maximum 3*255, here slightly less (doesn't matter).
 int
 LCD_GetColorDifference( uint16_t color1, uint16_t color2 )
@@ -391,7 +403,7 @@ int
 LCD_GetCharWidth( int font_options, char c )
 {
 	int width = 8;
-	// As long as all fonts supported HERE are fixed-width, 
+	// As long as all fonts supported HERE are fixed-width,
 	// ignore the character code ('c')  without a warning :
 	(void)c;
 
@@ -403,7 +415,7 @@ LCD_GetCharWidth( int font_options, char c )
 
 int
 LCD_GetTextWidth( int font_options, const char *pszText )
-{ 
+{
 	int text_width = 0;
 	if( pszText != NULL ) {
 		while(*pszText) {
@@ -418,10 +430,10 @@ LCD_GetTextWidth( int font_options, const char *pszText )
 }
 
   // Returns the graphic coordinate (x) to print the next character .
-  // 
+  //
   // Speed: *MUCH* higher than with Tytera's original code (aka 'gfx'),
   //        for reasons explained in LCD_SetOutputRect() .
-  // 
+  //
   // Drawing a zoomed character with 12 * 24 pixels took about 160 microseconds.
   // A screen with 5*13 'large' characters was filled in less than 11 ms.
   // Despite that, only redraw the screen when necessary because the QRM
@@ -465,7 +477,7 @@ LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
 	// to the display for each pixel (which wasted time and caused avoidable QRM):
 	LCD_EnablePort();
 	if( LCD_SetOutputRect( x, y, x2, y2 ) <= 0 ) {
-		// something wrong with the graphic coordinates 
+		// something wrong with the graphic coordinates
 		return x;
 	}
 
@@ -497,7 +509,7 @@ LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
 	LCD_ReleasePort();
 
 	// pixel coord for printing the NEXT character
-	return x2+1; 
+	return x2+1;
 }
 
   // Clears the struct and sets the output clipping window to 'full screen'.
@@ -509,7 +521,7 @@ LCD_InitContext( lcd_context_t *pContext )
 	pContext->y2 = LCD_SCREEN_HEIGHT-1;
 }
 
-  // Draws a zero-terminated ASCII string. Should be simple but versatile. 
+  // Draws a zero-terminated ASCII string. Should be simple but versatile.
   //  [in]  pContext, especially pContext->x,y = graphic output cursor .
   //        pContext->x1,x1,x2,y2 = clipping area (planned) .
   //  [out] pContext->x,y = graphic coordinate for the NEXT output .
@@ -520,9 +532,9 @@ LCD_InitContext( lcd_context_t *pContext )
   //   \n (new line) : wrap into the next line, without clearing the rest
   //   \r (carriage return) : similar, but if the text before the '\r'
   //                   didn't fill a line on the screen, the rest will
-  //                   be filled with the background colour 
+  //                   be filled with the background colour
   //      (can eliminate the need for "clear screen" before printing, etc)
-  //   \t (horizontal tab) : doesn't print a 'tab' but horizontally 
+  //   \t (horizontal tab) : doesn't print a 'tab' but horizontally
   //                   CENTERS the remaining text in the current line
 int
 LCD_DrawString( lcd_context_t *pContext, const char *cp )
@@ -540,7 +552,7 @@ LCD_DrawString( lcd_context_t *pContext, const char *cp )
 		                // as a service for flicker-free output, CLEARS ALL UNTIL THE END
 		                // OF THE CURRENT LINE, so clearing the screen is unnecessary.
 			LCD_FillRect( x, y, pContext->x2, y+fh-1, pContext->bg_color );
-			// NO BREAK HERE !           
+			// NO BREAK HERE !
 		case '\n' :     // new line WITHOUT clearing the rest of the current line
 			x = left_margin;
 			y += fh;
@@ -584,7 +596,7 @@ LCD_Printf( lcd_context_t *pContext, const char *fmt, ... )
 }
 
 /**************************************************************************/
-/*! 
+/*!
     Display Driver Lowest Layer Settings.
 */
 /**************************************************************************/

@@ -6,14 +6,14 @@
 #include "semphr.h"
 
 // File:    md380tools/applet/src/lcd_driver.h
-// Author:  Wolf (DL4YHF) [initial version] 
-// Date:    2017-04-14 
+// Author:  Wolf (DL4YHF) [initial version]
+// Date:    2017-04-14
 //  API for a simple LCD driver for ST7735-compatible controllers,
 //             tailored for Retevis RT3 / Tytera MD380 / etc .
 //  Details in the implementation; md380tools/applet/src/lcd_driver.h .
-//  
+//
 
-// Defines (macro constants, plain old "C"..) 
+// Defines (macro constants, plain old "C"..)
 
 #define LCD_SCREEN_WIDTH  160
 #define LCD_SCREEN_HEIGHT 128
@@ -110,7 +110,7 @@
 //---------------------------------------------------------------------------
 
 typedef struct tLcdContext
-{ 
+{
   int x,y;  // graphic output coord, updated after printing each character .
   uint16_t fg_color, bg_color; // foreground and background colour
   int font; // current font, zoom, and character output options
@@ -127,7 +127,7 @@ typedef union T_RGB_Quad
   struct
    { uint8_t b; // blue component, 0..255
      // (least significant byte for "hex-code"-compatibility on little endian system.
-     //  rgb_quad_t.u32 = 0xFF0000 shall be the same as "#ff0000" = PURE RED, not BLUE) 
+     //  rgb_quad_t.u32 = 0xFF0000 shall be the same as "#ff0000" = PURE RED, not BLUE)
      uint8_t g; // green component, 0..255
      uint8_t r; // red component, 0..255
      uint8_t a; // alignment dummy (no "alpha" channel here)
@@ -148,11 +148,11 @@ typedef union T_RGB_Quad
 //---------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
-// Prototypes for LOW-LEVEL LCD driver functions 
+// Prototypes for LOW-LEVEL LCD driver functions
 //---------------------------------------------------------------------------
 
 void LimitInteger( int *piValue, int min, int max);
-void LCD_SetPixelAt( int x, int y, uint16_t wColor ); // inefficient.. avoid if possible 
+void LCD_SetPixelAt( int x, int y, uint16_t wColor ); // inefficient.. avoid if possible
 
 void LCD_FillRect( // Draws a frame-less, solid, filled rectangle
         int x1, int y1,  // [in] pixel coordinate of upper left corner
@@ -160,7 +160,7 @@ void LCD_FillRect( // Draws a frame-less, solid, filled rectangle
         uint16_t wColor); // [in] filling colour (BGR565)
 void LCD_HorzLine( int x1, int y, int x2, uint16_t wColor );
 
-void LCD_ColorGradientTest(void); // Fills the framebuffer with a 
+void LCD_ColorGradientTest(void); // Fills the framebuffer with a
   // 2D color gradient. Used for testing .. details in lcd_driver.c .
 
 uint8_t *LCD_GetFontPixelPtr_8x8( uint8_t c);
@@ -197,13 +197,15 @@ int LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
 void LCD_InitContext( lcd_context_t *pContext );
   // Clears the struct and sets the output clipping window to 'full screen'.
 
-int LCD_DrawString( lcd_context_t *pContext, const char *cp ); 
-  // Draws a zero-terminated ASCII string. 
+int LCD_DrawString( lcd_context_t *pContext, const char *cp );
+  // Draws a zero-terminated ASCII string.
   // Returns the graphic coordinate (x) to print the next character .
 
 int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... );
   // Almost the same as LCD_DrawString,
   // but with all goodies supported by tinyprintf .
+
+void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h, int t);
 
 void LCD_Init(void);
 void LCD_EnablePort(void);
