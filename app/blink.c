@@ -100,7 +100,7 @@ led_set(int red, int green)
 	}
 	val = VOL_Read();
 	lcd.x = 0;
-	lcd.y = 32;
+	lcd.y = 40;
 	LCD_Printf(&lcd, "Vol: %d (%d)    \n", val, VOL_Taper(val));
 	val = Temp_Read();
 	lcd.x = 0;
@@ -113,7 +113,8 @@ led_set(int red, int green)
 		if (key == '~')
 			pin_toggle(pin_lcd_bl);
 		if (key == 'M')
-			LCD_DrawBGRTransparent(wlarc_logo, 0, 0, 160, 128, 65535);
+			LCD_DrawRGBTransparent(wlarc_logo, 0, 0, 160, 128, 65535);
+		lcd.x = 0;
 		sprintf(kp, "%d (%c)\n", key, isprint(key)?key:'.');
 		usb_cdc_write(kp, 11);
 		if (key == 'P') {	// Power off
@@ -121,7 +122,7 @@ led_set(int red, int green)
 			// lcd.y=56;
 			// lcd.font = LCD_OPT_DOUBLE_WIDTH | LCD_OPT_DOUBLE_HEIGHT;
 			// LCD_DrawString(&lcd, "\tFucker!");
-			LCD_DrawBGR(wlarc_logo, 0, 0, 160, 128);
+			LCD_DrawRGB(wlarc_logo, 0, 0, 160, 128);
 			lcd.font = 0;
 			vTaskDelay(1500);
 			Normal_Power();
@@ -153,7 +154,7 @@ static void output_main(void* machtnichts __attribute__((unused))) {
 	vTaskDelay(250);
 	LCD_FastColourGradient();
 	vTaskDelay(250);
-	LCD_DrawBGRTransparent(wlarc_logo, 0, 0, 160, 128, 65535);
+	LCD_DrawRGBTransparent(wlarc_logo, 0, 0, 160, 128, 65535);
 	vTaskDelay(1000);
 
 	for(;;) {

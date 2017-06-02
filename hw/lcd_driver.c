@@ -1,8 +1,7 @@
 // File:    md380tools/applet/src/lcd_driver.c
 // Author:  Wolf (DL4YHF) [initial version]
 // Date:    2017-04-14
-//  Implements a simple LCD driver for ST7735-compatible controllers,
-//             tailored for Retevis RT3 / Tytera MD380 / etc .
+//  Implements a simple LCD driver for Retevis RT3 / Tytera MD380 / etc .
 //  Works much better (!) than the stock driver in the original firmware
 //             as far as speed and QRM(!) from the display cable is concerned.
 //  Written for the 'alternative setup menu', but no dependcies from that,
@@ -20,6 +19,7 @@
 #include <string.h>       // memset(), ...
 #include <gpio.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 //#include "md380.h"
 //#include "irq_handlers.h" // hardware-specific stuff like "LCD_CS_LOW", etc
@@ -34,6 +34,13 @@
 
 
 extern const uint8_t font_8_8[256*8]; // extra font with 256 characters from 'codepage 437'
+#define LCD_WriteCommand(cmd)	*(volatile uint8_t*)0x60000000 = cmd
+#define LCD_WriteData(dta)	*(volatile uint8_t*)0x60040000 = dta
+#define LCD_WritePixel(clr)			\
+    do {					\
+	    LCD_WriteData(((clr) >> 8) & 0xff);	\
+	    LCD_WriteData((clr) & 0xff);	\
+    } while(0)
 
 
 //---------------------------------------------------------------------------
@@ -53,20 +60,6 @@ extern const uint8_t font_8_8[256*8]; // extra font with 256 characters from 'co
 //   VISIBLE image - and painting isn't spectacularly fast !
 //---------------------------------------------------------------------------
 
-  // I/O address taken from DL4YHF's dissassembly, @0x803352c in D13.020 .
-static void
-LCD_WriteCommand( uint8_t bCommand )
-{
-	*(volatile uint8_t*)0x60000000 = bCommand;
-}
-
-static void
-LCD_WriteData( uint8_t bData )
-{
-	// I/O address taken from DL4YHF's dissassembly, @0x8033534 in D13.020 .
-	*(volatile uint8_t*)0x60040000 = bData; // one address bit controls "REGISTER SELECT"
-}
-
   // Not the same as Tytera's "gfx_write_pixel_to_framebuffer()" (@0x8033728) !
   // Only sends the 16-bit colour value, which requires much less accesses
   // to the external memory interface (which STM calls "FSMC"):
@@ -75,15 +68,8 @@ LCD_WriteData( uint8_t bData )
 static void
 LCD_WritePixels( uint16_t wColor, int nRepeats )
 {
-	while( nRepeats-- ) {
-		// ST7735 datasheet V2.1 page 39, "8-bit data bus for 16-bit/pixel,
-		//                 (RGB 5-6-5-bit input), 65K-Colors, Reg 0x3A = 0x05 " :
-		LCD_WriteData( wColor >> 8 );  // 5 "blue" bits + 3 upper "green" bits
-		// __NOP;     // some delay between these two 8-bit transfers ?
-		LCD_WriteData( wColor );       // 3 lower green bits + 5 "red" bits
-		// Don't de-assert LCD_CS here yet ! In a character,
-		// more pixels will be emitted into the same output rectangle
-	}
+	while( nRepeats-- )
+		LCD_WritePixel(wColor);
 }
 
 __attribute__ ((noinline))
@@ -131,50 +117,24 @@ LCD_SetOutputRect( int x1, int y1, int x2, int y2 )
 		return 0;
 	}
 
-#if(0)
-	// one would expect this...
 	caset_xs = x1;
 	caset_xe = x2;
 	raset_ys = y1;
 	raset_ye = y2;
-#else
-	// but in an RT3, 'X' and 'Y' had to be swapped, and..
-	caset_xs = y1;
-	caset_xe = y2;
-	raset_ys = 159-x2;  // low  'start' value
-	raset_ye = 159-x1;  // high 'end' value
-#endif
 
-	LCD_WriteCommand( 0x2A ); // ST7735 DS V2.1 page 100 : "CASET" ....
-	// ... but beware: 'columns' and 'rows' from the ST7735's
-	//     point of view must be swapped, because the display initialisation
-	//     (which still only takes place in TYTERA's part of the firmware),
-	//     the possibility of rotating the display by 90° BY THE LCD CONTROLLER
-	//     are not used !
-	// To 'compensate' this in software, x- and y-coordinates would have
-	// to be swapped, and (much worse and CPU-hogging) the character bitmaps
-	// would have to be rotated by 90° before being sent to the controller.
-	//     The ST7735 datasheet (V2.1 by Sitronix) explains on pages 60..61 .
-	//     how to control "Memory Data Write/Read Direction" via 'MADCTL' .
-	//     The use the term "X-Y Exchange" for a rotated display,
-	//     and there are EIGHT combinations of 'Mirror' and 'Exchange'.
-	//
-	// The original firmware (D13.020 @ 0x08033590) uses different 'MADCTL'
-	//     settings, depending on some setting in SPI-Flash (?):
-	//  * 0x08 for one type of display     : MADCTL.MY=0, MX=0, MV=0, ML=0, RGB=1
-	//  * 0x48 for another type of display : MADCTL.MY=0, MX=1, MV=0, ML=0, RGB=1
-	LCD_WriteData((uint8_t)(caset_xs>>8)); // 1st param: "XS15..XS8" ("X-start", hi)
-	LCD_WriteData((uint8_t) caset_xs    ); // 2nd param: "XS7 ..XS0" ("X-start", lo)
-	LCD_WriteData((uint8_t)(caset_xe>>8)); // 3rd param: "XE15..XE8" ("X-end",   hi)
-	LCD_WriteData((uint8_t) caset_xe    ); // 4th param: "XE7 ..XE0" ("X-end",   lo)
+	LCD_WriteCommand(LCD_CMD_CASET);
+	LCD_WriteData((uint8_t)caset_xs);
+	LCD_WriteData((uint8_t)caset_xs);
+	LCD_WriteData((uint8_t)caset_xe);
+	LCD_WriteData((uint8_t)caset_xe);
 
-	LCD_WriteCommand( 0x2B ); // ST7735 DS V2.1 page 102 : "RASET" ....
-	LCD_WriteData((uint8_t)(raset_ys>>8)); // 1st param: "YS15..YS8" ("Y-start", hi)
-	LCD_WriteData((uint8_t) raset_ys    ); // 2nd param: "YS7 ..YS0" ("Y-start", lo)
-	LCD_WriteData((uint8_t)(raset_ye>>8)); // 3rd param: "YE15..YE8" ("Y-end",   hi)
-	LCD_WriteData((uint8_t) raset_ye    ); // 4th param: "YE7 ..YE0" ("Y-end",   lo)
+	LCD_WriteCommand(LCD_CMD_RASET);
+	LCD_WriteData((uint8_t)raset_ys);
+	LCD_WriteData((uint8_t)raset_ys);
+	LCD_WriteData((uint8_t)raset_ye);
+	LCD_WriteData((uint8_t)raset_ye);
 
-	LCD_WriteCommand( 0x2C ); // ST7735 DS V2.1 page 104 : "RAMWR" / "Memory Write"
+	LCD_WriteCommand(LCD_CMD_RAMWR);
 
 	// Do NOT de-assert LCD_CS here .. reason below !
 	return (1+x2-x1) * (1+y2-y1);
@@ -204,30 +164,22 @@ LCD_SetPixelAt( int x, int y, uint16_t wColor )
 	//                   ->| |<- t_WR_low ~ 70ns
 	//
 	LCD_EnablePort();
-	LCD_WriteCommand( 0x2A ); // (1) ST7735 DS V2.1 page 100 : "CASET" ....
+	LCD_WriteCommand(LCD_CMD_CASET);
 	// ... but there's something strange in Tytera's firmware,
 	//     for reasons only they will now :
 	//     In D13.020 @8033728 ("gfx_write_pixel_to_framebuffer"),
 	//     the same 8-bit value (XS7..0) is written TWICE instead of
 	//     sending a 16-bit coordinate as in the ST7735 datasheet.
-#if(0) // For a "normally" mounted display, we would use THIS:
-	LCD_WriteData((uint8_t)(x>>8)); // 1st CASET param: "XS15..XS8" ("X-start", hi)
-	LCD_WriteData((uint8_t) x    ); // 2nd CASET param: "XS7 ..XS0" ("X-start", lo)
-#else  // ... but for the unknown LCD controller in an RT3, Tytera only sends this:
-	LCD_WriteData( (uint8_t)y    ); // (2) 1st CASET param: "XS15..XS8" ("X-start", hi)
-	LCD_WriteData( (uint8_t)y    ); // (3) 2nd CASET param: "XS7 ..XS0" ("X-start", lo)
-#endif // ST7735 or whatever-is-used in an MD380 / RT3 ?
+	LCD_WriteData((uint8_t) x); // 2nd CASET param: "XS7 ..XS0" ("X-start", lo)
+	LCD_WriteData((uint8_t) x); // 2nd CASET param: "XS7 ..XS0" ("X-start", lo)
+//	LCD_WriteData((uint8_t) x); // 1st CASET param: "XS15..XS8" ("X-start", hi)
 
-	LCD_WriteCommand( 0x2B ); // (4) ST7735 DS V2.1 page 102 : "RASET" ....
-#if(0) // For a "normally" mounted display, we would use THIS:
-	LCD_WriteData((uint8_t)(y>>8)); // 1st RASET param: "YS15..YS8" ("Y-start", hi)
-	LCD_WriteData((uint8_t) y    ); // 2nd RASET param: "YS7 ..YS0" ("Y-start", lo)
-#else  // ... but for the unknown LCD controller in an RT3, we need this:
-	LCD_WriteData( (uint8_t)(159-x) ); // (5) 1st RASET param: "YS15..YS8" ("Y-start", hi)
-	LCD_WriteData( (uint8_t)(159-x) ); // (6) 2nd RASET param: "YS7 ..YS0" ("Y-start", lo)
-#endif // ST7735 or whatever-is-used in an MD380 / RT3 ?
+	LCD_WriteCommand(LCD_CMD_RASET);
+	LCD_WriteData((uint8_t)y); // 1st RASET param: "YS15..YS8" ("Y-start", hi)
+	LCD_WriteData((uint8_t)y); // 1st RASET param: "YS15..YS8" ("Y-start", hi)
+//	LCD_WriteData((uint8_t)y); // 2nd RASET param: "YS7 ..YS0" ("Y-start", lo)
 
-	LCD_WriteCommand( 0x2C );    // (7) ST7735 DS V2.1 p. 104 : "RAMWR"
+	LCD_WriteCommand(LCD_CMD_RAMWR);
 	LCD_WritePixels( wColor,1 ); // (8,9) send 16-bit colour in two 8-bit writes
 	LCD_ReleasePort();
 }
@@ -236,7 +188,7 @@ LCD_SetPixelAt( int x, int y, uint16_t wColor )
 void LCD_FillRect(
         int x1, int y1,  // [in] pixel coordinate of upper left corner
         int x2, int y2,  // [in] pixel coordinate of lower right corner
-        uint16_t wColor) // [in] filling colour (BGR565)
+        uint16_t wColor) // [in] filling colour (RGB565)
 {
 	int nPixels;
 
@@ -249,6 +201,7 @@ void LCD_FillRect(
 
 	if( nPixels<=0 ) {
 		// something wrong with the coordinates
+		LCD_ReleasePort();
 		return;
 	}
 
@@ -265,6 +218,12 @@ void LCD_HorzLine(int x1, int y, int x2, uint16_t wColor)
 	LCD_FillRect( x1, y, x2, y, wColor ); // .. just a camouflaged 'fill rectangle'
 }
 
+ // Draws a thin vertical line ..
+void LCD_VertLine(int x, int y, int y2, uint16_t wColor)
+{
+	LCD_FillRect( x, y, x, y2, wColor ); // .. just a camouflaged 'fill rectangle'
+}
+
   // Fills the framebuffer with a 2D colour gradient for testing .
   // If the colour-bit-fiddling below is ok, the display
   // should be filled with colour gradients :
@@ -277,90 +236,115 @@ void LCD_HorzLine(int x1, int y, int x2, uint16_t wColor)
   //       |                |
   //      x=0              x=159
   //
-void LCD_ColorGradientTest(void)
-{
-	int x,y;
-	for(y=0; y<128; ++y) {
-		for(x=0; x<160; ++x) {
-			// 'Native' colour format, found by trial-and-error:
-			//   BGR565 = 32 levels of BLUE  (in bits 15..11),
-			//            64 levels of GREEN (in bits 10..5),
-			//            32 levels of RED   (in bits 4..0).
-			LCD_SetPixelAt( x,y,
-			    (x/5) |         // increasing from left to right: RED
-			    ((63-(2*x)/5)<<5) // increasing from right to left: GREEN
-			    |((y/4)<<11) );   // increasing from top to bottom: BLUE
-		}
-	}
-}
-
 void LCD_FastColourGradient(void) {
 	int x, y;
-	uint16_t px;
+	lcd_colour_t px;
+
 	LCD_EnablePort();
 	LCD_SetOutputRect(0, 0, LCD_SCREEN_WIDTH - 1, LCD_SCREEN_HEIGHT - 1);
-	for (x = LCD_SCREEN_WIDTH - 1; x >= 0; --x) {
-		for (y = 0; y < LCD_SCREEN_HEIGHT; ++y) {
-			px = (x/5)|((63-(2*x)/5)<<5)|((y/4)<<11);
-			LCD_WriteData(px>>8);
-			LCD_WriteData(px&255);
+	for (y = 0; y < LCD_SCREEN_HEIGHT; y++) {
+		for (x = 0; x < LCD_SCREEN_WIDTH; x++) {
+			px.packed.red = x/5;
+			px.packed.green = ((159-x)*2)/5;
+			px.packed.blue = y/4;
+			LCD_WritePixel(px.RGB565);
 		}
 	}
 	LCD_ReleasePort();
 }
 
-void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h) {
+void LCD_DrawRGB(uint16_t *rgb, int x, int y, int w, int h) {
 	int xx, yy;
 	int i = 0;
 	LCD_EnablePort();
-	if (LCD_SetOutputRect(x, y, x + w - 1, y + h - 1) <= 0)
+	if (LCD_SetOutputRect(x, y, x + w - 1, y + h - 1) <= 0) {
+		LCD_ReleasePort();
 		return;
-	for (xx = w; xx > 0; --xx) {
-		for (yy = 0; yy < h; ++yy) {
+	}
+	for (yy = 0; yy < h; ++yy) {
+		for (xx = 0; xx < w; xx++) {
 			i = (w * yy) + xx;
-			LCD_WriteData(bgr[i]>>8);
-			LCD_WriteData(bgr[i]&255);
+			LCD_WritePixel(rgb[i]);
 		}
 	}
 	LCD_ReleasePort();
 }
 
-void LCD_DrawBGRTransparent(uint16_t *bgr, int x, int y, int w, int h, int t) {
+#include "led.h"
+void LCD_DrawRGBTransparent(uint16_t *rgb, int x, int y, int w, int h, int t) {
 	int xx, yy;
 	int i = 0;
-	for (yy = y; yy < y + h && yy < LCD_SCREEN_HEIGHT; ++yy) {
-		for (xx = x; xx < x + w && xx < LCD_SCREEN_WIDTH; ++xx) {
-			if (bgr[i] != t)
-				LCD_SetPixelAt( xx, yy, bgr[i] );
-			++i;
+	bool last_transparent;
+	bool row_has_transparent;
+
+	LCD_EnablePort();
+	if (rgb[0] != t) {
+		if (LCD_SetOutputRect(x, y, x + w - 1, y + h - 1) <= 0) {
+			LCD_ReleasePort();
+			return;
 		}
+		last_transparent = false;
+		row_has_transparent = false;
 	}
+	else {
+		last_transparent = true;
+		row_has_transparent = true;
+	}
+	for (yy = y; yy < y + h && yy < LCD_SCREEN_HEIGHT; ++yy) {
+		for (xx = x; xx < x + w && xx < LCD_SCREEN_WIDTH; ++xx, ++i) {
+			if (rgb[i] == t) {
+				if (!last_transparent) {
+					last_transparent = true;
+					LCD_WriteCommand(LCD_CMD_NOP);
+				}
+				row_has_transparent = true;
+			}
+			else {
+				if (last_transparent) {
+					last_transparent = false;
+					if (xx == x) {
+						if (LCD_SetOutputRect(xx, yy, x + w - 1, y + h - 1) <= 0) {
+							LCD_ReleasePort();
+							return;
+						}
+					}
+					else {
+						if (LCD_SetOutputRect(xx, yy, x + w - 1, yy) <= 0) {
+							LCD_ReleasePort();
+							return;
+						}
+					}
+				}
+				LCD_WritePixel(rgb[i]);
+			}
+		}
+		if (row_has_transparent)
+			last_transparent = true;
+	}
+	LCD_ReleasePort();
 }
 
-// Centre coordinates x, y; radius r; BGR colour c; fill f
+// Centre coordinates x, y; radius r; RGB colour c; fill f
 void LCD_DrawCircle(int x, int y, int r, uint16_t c, bool f) {
-	int xx;
 	int X = 0;
 	int Y = r;
 	int D = 3 - (2 * r);
 	while (X < Y) {
-		LCD_SetPixelAt(x + X, y + Y, c);
-		LCD_SetPixelAt(x - X, y + Y, c);
-		LCD_SetPixelAt(x + X, y - Y, c);
-		LCD_SetPixelAt(x - X, y - Y, c);
-		LCD_SetPixelAt(x + Y, y + X, c);
-		LCD_SetPixelAt(x - Y, y + X, c);
-		LCD_SetPixelAt(x + Y, y - X, c);
-		LCD_SetPixelAt(x - Y, y - X, c);
 		if (f) {
-			for (xx = x - X + 1; xx < x + X; ++xx) {
-				LCD_SetPixelAt(xx, y + Y, c);
-				LCD_SetPixelAt(xx, y - Y, c);
-			}
-			for (xx = x - Y + 1; xx < x + Y; ++xx) {
-				LCD_SetPixelAt(xx, y + X, c);
-				LCD_SetPixelAt(xx, y - X, c);
-			}
+			LCD_HorzLine(x - X, y + Y, x + X - 1, c);
+			LCD_HorzLine(x - X, y - Y, x + X - 1, c);
+			LCD_HorzLine(x - Y, y + X, x + Y - 1, c);
+			LCD_HorzLine(x - Y, y - X, x + Y - 1, c);
+		}
+		else {
+			LCD_SetPixelAt(x + X, y + Y, c);
+			LCD_SetPixelAt(x - X, y + Y, c);
+			LCD_SetPixelAt(x + X, y - Y, c);
+			LCD_SetPixelAt(x - X, y - Y, c);
+			LCD_SetPixelAt(x + Y, y + X, c);
+			LCD_SetPixelAt(x - Y, y + X, c);
+			LCD_SetPixelAt(x + Y, y - X, c);
+			LCD_SetPixelAt(x - Y, y - X, c);
 		}
 		++X;
 		if (D < 0) {
@@ -372,19 +356,22 @@ void LCD_DrawCircle(int x, int y, int r, uint16_t c, bool f) {
 	}
 }
 
-// Top left coordinates x, y; width w; height h; BGR colour c; fill f
+// Top left coordinates x, y; width w; height h; RGB colour c; fill f
 void LCD_DrawRectangle(int x, int y, int w, int h, uint16_t c, bool f) {
-	int xx, yy;
-	for (yy = 0; yy < h; yy++) {
-		for (xx = 0; xx < w; xx++) {
-			if (f || yy == 0 || yy == h - 1 || xx == 0 || xx == w - 1) {
-				LCD_SetPixelAt(x + xx, y + yy, c);
-			}
+	if (f)
+		LCD_FillRect(x, y, x+w-1, y+h-1, c);
+	else {
+		LCD_HorzLine(x, y, x+w-1, c);
+		if (h>2) {
+			LCD_VertLine(x, y+1, y+h-2, c);
+			if (w > 1)
+				LCD_VertLine(x+w-1, y+1, y+h-2, c);
 		}
+		LCD_HorzLine(x, y+h-1, x+w-1, c);
 	}
 }
 
-// Top left coordinates x, y; terminal coordinates xx, yy; BGR colour c
+// Top left coordinates x, y; terminal coordinates xx, yy; RGB colour c
 void LCD_DrawLine(int x, int y, int xx, int yy, uint16_t c) {
 	uint8_t dx = xx - x;
 	uint8_t dy = yy - y;
@@ -392,88 +379,25 @@ void LCD_DrawLine(int x, int y, int xx, int yy, uint16_t c) {
 	int sy = y < yy ? 1 : -1;
 	int err = dx - dy;
 	int e2;
-	do {
-		LCD_SetPixelAt(x, y, c);
-		e2 = 2 * err;
-		if (e2 > -dy) {
-			err -= dy;
-			x += sx;
-		}
-		if (e2 < dx) {
-			err += dx;
-			y += sy;
-		}
-	} while (x != xx || y != yy);
-}
 
-  // Converts a 'native' colour (in the display's hardware-specific format)
-  // into red, green, and blue component; each ranging from 0 to ~~255 .
-uint32_t
-LCD_NativeColorToRGB( uint16_t native_color )
-{
-	rgb_quad_t rgb;
-	int i;
-	i = (native_color & LCD_COLOR_RED) >> LCD_COLORBIT0_RED; // -> 0..31 (5 'red bits' only)
-	i = (255*i) / 31;
-	rgb.s.r = (uint8_t)i;
-	i = (native_color & LCD_COLOR_GREEN)>> LCD_COLORBIT0_GREEN; // -> 0..63 (6 'green bits')
-	i = (255*i) / 63;
-	rgb.s.g = (uint8_t)i;
-	i = (native_color & LCD_COLOR_BLUE) >> LCD_COLORBIT0_BLUE; // -> 0..31 (5 'blue bits')
-	i = (255*i) / 31;
-	rgb.s.b = (uint8_t)i;
-	rgb.s.a = 0; // clear bits 31..24 in the returned DWORD (nowadays known as uint32_t)
-
-	return rgb.u32;
-}
-
-  // Converts an RGB mix (red,green,blue ranging from 0 to 255)
-  // into the LCD controller's hardware specific format (here: BGR565).
-uint16_t
-LCD_RGBToNativeColor( uint32_t u32RGB )
-{
-	rgb_quad_t rgb;
-	rgb.u32 = u32RGB;
-	return ((uint16_t)(rgb.s.r & 0xF8) >> 3)  // red  : move bits 7..3 into b 4..0
-	    | ((uint16_t)(rgb.s.g & 0xFC) << 3)  // green: move bits 7..2 into b 10..5
-	    | ((uint16_t)(rgb.s.b & 0xF8) << 8); // blue : move bits 7..3 into b 15..11
-}
-
-  // Crude measure for the "similarity" of two colours:
-  // Colours are split into R,G,B (range 0..255 each),
-  // then absolute differences added.
-  // Theoretic maximum 3*255, here slightly less (doesn't matter).
-int
-LCD_GetColorDifference( uint16_t color1, uint16_t color2 )
-{
-	rgb_quad_t rgb[2];
-	int delta_r, delta_g, delta_b;
-
-	rgb[0].u32 = LCD_NativeColorToRGB( color1 );
-	rgb[1].u32 = LCD_NativeColorToRGB( color2 );
-	delta_r = (int)rgb[0].s.r - (int)rgb[1].s.r;
-	delta_g = (int)rgb[0].s.g - (int)rgb[1].s.g;
-	delta_b = (int)rgb[0].s.b - (int)rgb[1].s.b;
-	if( delta_r<0)
-		delta_r = -delta_r;  // abs() may be a code-space-hogging macro..
-	if( delta_g<0)
-		delta_g = -delta_g;  // .. and there are already TOO MANY dependencies here
-	if( delta_b<0)
-		delta_b = -delta_b;
-	return delta_r + delta_g + delta_b;
-}
-
-  // Returns either LCD_COLOR_BLACK or LCD_COLOR_WHITE,
-  // whichever gives the best contrast for text output
-  // using given background colour. First used in color_picker.c .
-uint16_t
-LCD_GetGoodContrastTextColor( uint16_t backgnd_color )
-{
-	rgb_quad_t rgb;
-	rgb.u32 = LCD_NativeColorToRGB( backgnd_color );
-	if( ((int)rgb.s.r + (int)rgb.s.g + (int)rgb.s.b/2 ) > 333 )
-		return LCD_COLOR_BLACK;
-	return LCD_COLOR_WHITE;
+	if (x == xx)
+		LCD_VertLine(x, y, yy, c);
+	else if (y == yy)
+		LCD_HorzLine(x, y, xx, c);
+	else {
+		do {
+			LCD_SetPixelAt(x, y, c);
+			e2 = 2 * err;
+			if (e2 > -dy) {
+				err -= dy;
+				x += sx;
+			}
+			if (e2 < dx) {
+				err += dx;
+				y += sy;
+			}
+		} while (x != xx || y != yy);
+	}
 }
 
   // Retrieves the address of a character's font bitmap, 8 * 8 pixels .
@@ -542,8 +466,8 @@ int
 LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
         const char c,      // [in] character code (ASCII)
         int x, int y,      // [in] pixel coordinate
-        uint16_t fg_color, // [in] foreground colour (BGR565)
-        uint16_t bg_color, // [in] background colour (BGR565)
+        uint16_t fg_color, // [in] foreground colour (RGB565)
+        uint16_t bg_color, // [in] background colour (RGB565)
         int options )      // [in] LCD_OPT_... (bitwise combined)
 {
 	uint8_t *pbFontMatrix;
@@ -578,6 +502,7 @@ LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
 	LCD_EnablePort();
 	if( LCD_SetOutputRect( x, y, x2, y2 ) <= 0 ) {
 		// something wrong with the graphic coordinates
+		LCD_ReleasePort();
 		return x;
 	}
 
@@ -591,11 +516,9 @@ LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
 	// the pixels must be read from the font pixel matrix in a different sequence:
 
 	// read 'monochrome pixel' from font bitmap..
-	for( x=font_width-1; x>=0; --x) {
-		x_zoom = ( options & LCD_OPT_DOUBLE_WIDTH ) ? 2 : 1;
-		while(x_zoom--) {
-			// .. rotated by 90° and horizontally mirrored
-			for( y=0; y<font_height; ++y) {
+	for (y=0; y<font_height; y++) {
+		for (x=0; x<font_width; x++) {
+			for (x_zoom = ( options & LCD_OPT_DOUBLE_WIDTH ) ? 2 : 1; x_zoom; x_zoom--) {
 				if( pbFontMatrix[y] & (0x80>>x) ) {
 					// approx. 1us per double-width pixel
 					LCD_WritePixels( fg_color, y_zoom );
@@ -795,22 +718,16 @@ void LCD_Init(void)
 	LCD_WriteData(0x05);	// 16bpp
 	LCD_WriteCommand(LCD_CMD_MADCTL);
 #ifdef MD_390
-	LCD_WriteData(0xc8);
+	LCD_WriteData(0x60);	// Was 0xc8
 #else
-	LCD_WriteData(0x08);
+	LCD_WriteData(0xa8);	// Was 0x08
 #endif
-	LCD_WriteCommand(LCD_CMD_INVCTR);
-	LCD_WriteData(0x00);	// Line inversion in all modes
-	LCD_WriteCommand(LCD_CMD_VCOM4L);
-	LCD_WriteData(0x16);
-	LCD_WriteCommand(LCD_CMD_EXTCTRL);
-	LCD_WriteData(0x00);
-	LCD_WriteCommand(LCD_CMD_PWCTR6);
-	LCD_WriteData(0x00);
+	LCD_WriteCommand(LCD_CMD_SETCYC);
+	LCD_WriteData(0x00);	// Column inversion, 89 clocks per line
 	LCD_WriteCommand(LCD_CMD_SLPOUT);
 	vTaskDelay(130);
 	LCD_ReleasePort();
-	LCD_DrawBGR(wlarc_logo, 0, 0, 160, 128);
+	LCD_DrawRGB(wlarc_logo, 0, 0, 160, 128);
 	LCD_EnablePort();
 	LCD_WriteCommand(LCD_CMD_DISPON);
 	LCD_WriteCommand(LCD_CMD_RAMWR);

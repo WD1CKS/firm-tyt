@@ -8,9 +8,8 @@
 // File:    md380tools/applet/src/lcd_driver.h
 // Author:  Wolf (DL4YHF) [initial version]
 // Date:    2017-04-14
-//  API for a simple LCD driver for ST7735-compatible controllers,
-//             tailored for Retevis RT3 / Tytera MD380 / etc .
-//  Details in the implementation; md380tools/applet/src/lcd_driver.h .
+//  API for a simple LCD driver for Retevis RT3 / Tytera MD380 / etc .
+//  Details in the implementation;
 //
 
 // Defines (macro constants, plain old "C"..)
@@ -18,19 +17,17 @@
 #define LCD_SCREEN_WIDTH  160
 #define LCD_SCREEN_HEIGHT 128
 
-#define LCD_FONT_WIDTH  6  // width  of a character cell in the 'small', fixed font
-#define LCD_FONT_HEIGHT 12 // height of a character cell in the 'small', fixed font
-
-// ST7735 System Function Commands
+// Taken from HX8353-E datasheet, actual chip in MD-380 is HX8302-A
 #define LCD_CMD_NOP		0x00	// No Operation
 #define LCD_CMD_SWRESET		0x01	// Software reset
-#define LCD_CMD_RDDID		0x04	// Read Display ID
+#define LCD_CMD_RDDIDIF		0x04	// Read Display ID Info
 #define LCD_CMD_RDDST		0x09	// Read Display Status
 #define LCD_CMD_RDDPM		0x0a	// Read Display Power
 #define LCD_CMD_RDD_MADCTL	0x0b	// Read Display
 #define LCD_CMD_RDD_COLMOD	0x0c	// Read Display Pixel
 #define LCD_CMD_RDDDIM		0x0d	// Read Display Image
 #define LCD_CMD_RDDSM		0x0e	// Read Display Signal
+#define LCD_CMD_RDDSDR		0x0f	// Read display self-diagnostic resut
 #define LCD_CMD_SLPIN		0x10	// Sleep in & booster off
 #define LCD_CMD_SLPOUT		0x11	// Sleep out & booster on
 #define LCD_CMD_PTLON		0x12	// Partial mode on
@@ -43,11 +40,14 @@
 #define LCD_CMD_CASET		0x2a	// Column address set
 #define LCD_CMD_RASET		0x2b	// Row address set
 #define LCD_CMD_RAMWR		0x2c	// Memory write
+#define LCD_CMD_RGBSET		0x2d	// LUT parameter (16-to-18 color mapping)
 #define LCD_CMD_RAMRD		0x2e	// Memory read
 #define LCD_CMD_PTLAR		0x30	// Partial start/end address set
+#define LCD_CMD_VSCRDEF		0x31	// Vertical Scrolling Direction
 #define LCD_CMD_TEOFF		0x34	// Tearing effect line off
 #define LCD_CMD_TEON		0x35	// Tearing effect mode set & on
 #define LCD_CMD_MADCTL		0x36	// Memory data access control
+#define LCD_CMD_VSCRSADD	0x37	// Vertical scrolling start address
 #define LCD_CMD_IDMOFF		0x38	// Idle mode off
 #define LCD_CMD_IDMON		0x39	// Idle mode on
 #define LCD_CMD_COLMOD		0x3a	// Interface pixel format
@@ -55,44 +55,37 @@
 #define LCD_CMD_RDID2		0xdb	// Read ID2
 #define LCD_CMD_RDID3		0xdc	// Read ID3
 
-// Panel Function Commands
-#define LCD_CMD_FRMCTR1		0xb1	// In normal mode
-#define LCD_CMD_FRMCTR2		0xb2	// In idle mode
-#define LCD_CMD_FRMCTR3		0xb3	// In partial mode + Full colors
-#define LCD_CMD_INVCTR		0xb4	// Display inversion control
-#define LCD_CMD_DISSET5		0xb6	// Display function setting
-#define LCD_CMD_PWCTR1		0xc0	// Power control setting
-#define LCD_CMD_PWCTR2		0xc1	// Power control setting
-#define LCD_CMD_PWCTR3		0xc2	// In normal mode (Full colors)
-#define LCD_CMD_PWCTR4		0xc3	// In Idle mode (8-colors)
-#define LCD_CMD_PWCTR5		0xc4	// In partial mode + Full colors
-#define LCD_CMD_VMCTR1		0xc5	// VCOM control 1
-#define LCD_CMD_VMOFCTR		0xc7	// Set VCOM offset control
-#define LCD_CMD_WRID2		0xd1	// Set LCM version code
-#define LCD_CMD_WRID3		0xd2	// Customer Project code
-#define LCD_CMD_PWCTR6		0xfc	// In partial mode + Idle
-#define LCD_CMD_NVCTR1		0xd9	// EEPROM control status
-#define LCD_CMD_NVCTR2		0xde	// EEPROM Read Command
-#define LCD_CMD_NVCTR3		0xdf	// EEPROM Write Command
-#define LCD_CMD_GAMCTRP1	0xe0	// Set Gamma adjustment +
-#define LCD_CMD_GAMCTRN1	0xe1	// Set Gamma adjustment -
-#define LCD_CMD_EXTCTRL		0xf0	// Extension Command Control
-#define LCD_CMD_VCOM4L		0xff	// Vcom 4 Level control
+// Extended command set
+#define LCD_CMD_SETOSC		0xb0	// Set internal oscillator
+#define LCD_CMD_SETPWCTR	0xb1	// Set power control
+#define LCD_CMD_SETDISPLAY	0xb2	// Set display control
+#define LCD_CMD_SETCYC		0xb4	// Set dispaly cycle
+#define LCD_CMD_SETBGP		0xb5	// Set BGP voltage
+#define LCD_CMD_SETVCOM		0xb6	// Set VCOM voltage
+#define LCD_CMD_SETEXTC		0xb9	// Enter extension command
+#define LCD_CMD_SETOTP		0xbb	// Set OTP
+#define LCD_CMD_SETSTBA		0xc0	// Set Source option
+#define LCD_CMD_SETID		0xc3	// Set ID
+#define LCD_CMD_SETPANEL	0xcc	// Set Panel characteristics
+#define LCD_CMD_GETHID		0xd0	// Read Himax internal ID
+#define LCD_CMD_SETGAMMA	0xe0	// Set Gamma
+#define LCD_CMD_SET_SPI_RDEN	0xfe	// Set SPI Read address (and enable)
+#define LCD_CMD_GET_SPI_RDEN	0xff	// Get FE A[7:0] parameter
 
-// Colour values for the internally used 16-bit "BGR565" format :
-// BLUE component in bits 15..11, GREEN in bits 10..5, RED in bits 4..0 :
-#define LCD_COLORBIT0_RED   0
+// Colour values for the internally used 16-bit "RGB565" format :
+// RED component in bits 15..11, GREEN in bits 10..5, BLUE in bits 4..0 :
+#define LCD_COLORBIT0_RED   11
 #define LCD_COLORBIT0_GREEN 5
-#define LCD_COLORBIT0_BLUE  11
+#define LCD_COLORBIT0_BLUE  0
 #define LCD_COLOR_WHITE 0xFFFF
 #define LCD_COLOR_BLACK 0x0000
-#define LCD_COLOR_BLUE  0xF800
+#define LCD_COLOR_RED  0xF800
 #define LCD_COLOR_GREEN 0x07E0
-#define LCD_COLOR_RED   0x001F
+#define LCD_COLOR_BLUE   0x001F
 #define LCD_COLOR_YELLOW (LCD_COLOR_RED|LCD_COLOR_GREEN)
 #define LCD_COLOR_CYAN   (LCD_COLOR_BLUE|LCD_COLOR_GREEN)
 #define LCD_COLOR_PURPLE (LCD_COLOR_RED|LCD_COLOR_BLUE)
-#define LCD_COLOR_MD380_BKGND_BLUE 0xFC03 // BGR565-equivalent of Tytera's blue background for the main screen
+#define LCD_COLOR_MD380_BKGND_BLUE 0x1C1F // RGB565-equivalent of Tytera's blue background for the main screen
 
 
 // Bitwise combineable 'options' for some text drawing functions:
@@ -109,6 +102,16 @@
 //   to pass two colours and a coordinate to LCD_Printf()...
 //---------------------------------------------------------------------------
 
+typedef union tLcdColour
+{
+	uint16_t RGB565;
+	struct tLcdPackedColour {
+		uint16_t	blue : 5;
+		uint16_t	green : 6;
+		uint16_t	red : 5;
+	} packed;
+}  __attribute__((packed)) lcd_colour_t;
+
 typedef struct tLcdContext
 {
   int x,y;  // graphic output coord, updated after printing each character .
@@ -118,25 +121,6 @@ typedef struct tLcdContext
   int x1, y1, x2, y2; // simple clipping and margins for 'printing'.
   // The above range is set for 'full screen' in LCD_InitContext.
 } lcd_context_t;
-
-
-  // Structure of the 32-bit RGB colour type (3 * 8 colour bits),
-  // used by LCD_NativeColorToRGB() + LCD_RGBToNativeColor() :
-typedef union T_RGB_Quad
-{ uint32_t u32;  // "all in one DWORD", compatible with 6-digit "hex codes"
-  struct
-   { uint8_t b; // blue component, 0..255
-     // (least significant byte for "hex-code"-compatibility on little endian system.
-     //  rgb_quad_t.u32 = 0xFF0000 shall be the same as "#ff0000" = PURE RED, not BLUE)
-     uint8_t g; // green component, 0..255
-     uint8_t r; // red component, 0..255
-     uint8_t a; // alignment dummy (no "alpha" channel here)
-   } s;
-  uint8_t ba[4]; // the same as a 4-byte array (for processing in loops)
-          // Beware, here: ba[0] = least significant byte = BLUE component !
-} rgb_quad_t;
-
-
 
 
 //---------------------------------------------------------------------------
@@ -157,27 +141,17 @@ void LCD_SetPixelAt( int x, int y, uint16_t wColor ); // inefficient.. avoid if 
 void LCD_FillRect( // Draws a frame-less, solid, filled rectangle
         int x1, int y1,  // [in] pixel coordinate of upper left corner
         int x2, int y2,  // [in] pixel coordinate of lower right corner
-        uint16_t wColor); // [in] filling colour (BGR565)
+        uint16_t wColor); // [in] filling colour (RGB565)
 void LCD_HorzLine( int x1, int y, int x2, uint16_t wColor );
 
-void LCD_ColorGradientTest(void); // Fills the framebuffer with a
+void LCD_FastColourGradient(void); // Fills the framebuffer with a
   // 2D color gradient. Used for testing .. details in lcd_driver.c .
-void LCD_FastColourGradient(void);
 
 uint8_t *LCD_GetFontPixelPtr_8x8( uint8_t c);
   // Retrieves the address of a character's font bitmap, 8 * 8 pixels .
   // Unlike the fonts in Tytera's firmware, the 8*8-pixel font
   // supports all 256 fonts from the ancient 'codepage 437',
   // and can thus be used to draw tables, boxes, etc, as in the old days.
-
-uint32_t LCD_NativeColorToRGB( uint16_t native_colour );
-uint16_t LCD_RGBToNativeColor( uint32_t u32RGB );
-
-  // Crude measure for the "similarity" of two colour values.
-  // First used in app_menu.c to find out if two colours are
-  // "different enough" to be used as back- and foreground colours.
-int LCD_GetColorDifference( uint16_t color1, uint16_t color2 );
-uint16_t LCD_GetGoodContrastTextColor( uint16_t backgnd_color );
 
 //---------------------------------------------------------------------------
 // Prototypes for MID-LEVEL LCD driver functions (text output, etc)
@@ -206,8 +180,8 @@ int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... );
   // Almost the same as LCD_DrawString,
   // but with all goodies supported by tinyprintf .
 
-void LCD_DrawBGR(uint16_t *bgr, int x, int y, int w, int h);
-void LCD_DrawBGRTransparent(uint16_t *bgr, int x, int y, int w, int h, int t);
+void LCD_DrawRGB(uint16_t *rgb, int x, int y, int w, int h);
+void LCD_DrawRGBTransparent(uint16_t *rgb, int x, int y, int w, int h, int t);
 void LCD_DrawCircle(int x, int y, int r, uint16_t c, bool f);
 void LCD_DrawRectangle(int x, int y, int w, int h, uint16_t c, bool f);
 void LCD_DrawLine(int x, int y, int xx, int yy, uint16_t c);
