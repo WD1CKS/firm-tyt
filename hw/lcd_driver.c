@@ -775,6 +775,7 @@ LCD_ReleasePort(void)
 	xSemaphoreGive(LCD_Mutex);
 }
 
+extern uint16_t wlarc_logo[20480];
 void LCD_Init(void)
 {
 	LCD_Mutex = xSemaphoreCreateMutex();
@@ -808,6 +809,9 @@ void LCD_Init(void)
 	LCD_WriteData(0x00);
 	LCD_WriteCommand(LCD_CMD_SLPOUT);
 	vTaskDelay(130);
+	LCD_ReleasePort();
+	LCD_DrawBGR(wlarc_logo, 0, 0, 160, 128);
+	LCD_EnablePort();
 	LCD_WriteCommand(LCD_CMD_DISPON);
 	LCD_WriteCommand(LCD_CMD_RAMWR);
 	LCD_ReleasePort();
