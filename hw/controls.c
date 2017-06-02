@@ -109,6 +109,14 @@ BATT_Read(void)
 }
 
 int
+BATT2_Read(void)
+{
+	ADC_VBATCmd(ENABLE);
+	return ADC1_Read(ADC_Channel_18);
+	ADC_VBATCmd(DISABLE);
+}
+
+int
 Temp_Read(void)
 {
 	return ADC1_Read(ADC_Channel_16);

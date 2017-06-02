@@ -108,6 +108,9 @@ led_set(int red, int green)
 	val = BATT_Read();
 	lcd.x = 0;
 	LCD_Printf(&lcd, "Batt: %d   \n", val);
+	val = BATT2_Read();
+	lcd.x = 0;
+	LCD_Printf(&lcd, "Batt2: %d   \n", val);
 	key = get_key();
 	if (key) {
 		if (key == '~')
