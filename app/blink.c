@@ -100,7 +100,7 @@ led_set(int red, int green)
 	}
 	val = VOL_Read();
 	lcd.x = 0;
-	lcd.y = 24;
+	lcd.y = 32;
 	LCD_Printf(&lcd, "Vol: %d (%d)    \n", val, VOL_Taper(val));
 	val = Temp_Read();
 	lcd.x = 0;
