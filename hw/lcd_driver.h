@@ -43,7 +43,7 @@
 #define LCD_CMD_RGBSET		0x2d	// LUT parameter (16-to-18 color mapping)
 #define LCD_CMD_RAMRD		0x2e	// Memory read
 #define LCD_CMD_PTLAR		0x30	// Partial start/end address set
-#define LCD_CMD_VSCRDEF		0x31	// Vertical Scrolling Direction
+#define LCD_CMD_VSCRDEF		0x33	// Vertical Scrolling Direction
 #define LCD_CMD_TEOFF		0x34	// Tearing effect line off
 #define LCD_CMD_TEON		0x35	// Tearing effect mode set & on
 #define LCD_CMD_MADCTL		0x36	// Memory data access control
