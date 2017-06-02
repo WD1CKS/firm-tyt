@@ -274,52 +274,69 @@ void LCD_DrawRGB(uint16_t *rgb, int x, int y, int w, int h) {
 void LCD_DrawRGBTransparent(uint16_t *rgb, int x, int y, int w, int h, int t) {
 	int xx, yy;
 	int i = 0;
-	bool last_transparent;
-	bool row_has_transparent;
+	enum rect_state {
+		RECTANGLE_NONE,
+		RECTANGLE_LINE,
+		RECTANGLE_FULL
+	} rect;
 
 	LCD_EnablePort();
 	if (rgb[0] != t) {
+		/* If the first pixel is not transparent, set up the full rectangle */
 		if (LCD_SetOutputRect(x, y, x + w - 1, y + h - 1) <= 0) {
 			LCD_ReleasePort();
 			return;
 		}
-		last_transparent = false;
-		row_has_transparent = false;
+		rect = RECTANGLE_FULL;
 	}
 	else {
-		last_transparent = true;
-		row_has_transparent = true;
+		rect = RECTANGLE_NONE;
 	}
 	for (yy = y; yy < y + h && yy < LCD_SCREEN_HEIGHT; ++yy) {
 		for (xx = x; xx < x + w && xx < LCD_SCREEN_WIDTH; ++xx, ++i) {
 			if (rgb[i] == t) {
-				if (!last_transparent) {
-					last_transparent = true;
+				if (rect != RECTANGLE_NONE) {
+					/*
+					 * When we hit a transparent pixel, cancel any existing
+					 * drawing rectangle.
+					 */
 					LCD_WriteCommand(LCD_CMD_NOP);
+					rect = RECTANGLE_NONE;
 				}
-				row_has_transparent = true;
 			}
 			else {
-				if (last_transparent) {
-					last_transparent = false;
+				/*
+				 * If we have a pixel to draww, but no rectangle, set one up.
+				 */
+				if (rect == RECTANGLE_NONE) {
 					if (xx == x) {
+						/*
+						 * If the first column has a non-transparent pixel, set up
+						 * the full drawing rectangle
+						 */
 						if (LCD_SetOutputRect(xx, yy, x + w - 1, y + h - 1) <= 0) {
 							LCD_ReleasePort();
 							return;
 						}
+						rect = RECTANGLE_FULL;
 					}
 					else {
+						/*
+						 * Otherwise, only set up the rest of the row for output.
+						 */
 						if (LCD_SetOutputRect(xx, yy, x + w - 1, yy) <= 0) {
 							LCD_ReleasePort();
 							return;
 						}
+						rect = RECTANGLE_LINE;
 					}
 				}
 				LCD_WritePixel(rgb[i]);
 			}
 		}
-		if (row_has_transparent)
-			last_transparent = true;
+		/* If we finish a line rectangle, it is completed. */
+		if (rect == RECTANGLE_LINE)
+			rect = RECTANGLE_NONE;
 	}
 	LCD_ReleasePort();
 }
