@@ -114,7 +114,7 @@ led_set(int red, int green)
 	LCD_Printf(&lcd, "Batt2: %d   \n", val);
 	LCD_Printf(&lcd, "SPI ID: %08x\n", sFLASH_ReadID());
 	uint8_t sdat[10];
-	sFLASH_ReadBuffer(sdat, 0x40100000, 10);
+	sFLASH_ReadBuffer(sdat, 0x100000, 10);
 	LCD_Printf(&lcd, "SPI DAT: %10.10s\n", sdat);
 	key = get_key();
 	if (key) {
