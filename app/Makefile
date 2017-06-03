@@ -6,6 +6,7 @@ SRCS=	blink.c \
 	../hw/gpio.c \
 	../hw/lcd_driver.c \
 	../hw/led.c \
+	../hw/spiflash/spi_flash.c \
 	../hw/usb_cdc.c \
 	../hw/usb/usb_bsp.c \
 	../hw/usb/usb_core.c \
@@ -28,6 +29,7 @@ SRCS=	blink.c \
 	../stdperiph/stm32f4xx_fsmc.c \
 	../stdperiph/stm32f4xx_gpio.c \
 	../stdperiph/stm32f4xx_rcc.c \
+	../stdperiph/stm32f4xx_spi.c \
 	../stdperiph/startup_stm32f40xx.s
 
 # This is a terrible thing to do...
@@ -49,7 +51,8 @@ CPPFLAGS+=	-DUSE_USB_OTG_FS \
 		-I../FreeRTOS/Source/portable/GCC/ARM_CM4F \
 		-Ilua/src \
 		-I../stdperiph \
-		-I../hw
+		-I../hw \
+		-I../hw/spiflash
 CFLAGS=		-Wall \
 		-Wextra \
 		-g \

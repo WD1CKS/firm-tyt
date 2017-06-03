@@ -11,6 +11,7 @@
 #include "gpio.h"
 #include "lcd_driver.h"
 #include "images/wlarc.h"
+#include "spi_flash.h"
 
 #ifdef CODEPLUGS
 #include "lua.h"
@@ -111,6 +112,7 @@ led_set(int red, int green)
 	val = BATT2_Read();
 	lcd.x = 0;
 	LCD_Printf(&lcd, "Batt2: %d   \n", val);
+	LCD_Printf(&lcd, "SPI ID: %08x\n", sFLASH_ReadID());
 	key = get_key();
 	if (key) {
 		if (key == '~')
