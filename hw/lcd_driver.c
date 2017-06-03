@@ -14,57 +14,45 @@
 //      SRCS += font_8_8.o
 //
 
-#include <stm32f4xx.h>
-#include <stdint.h>
-#include <string.h>       // memset(), ...
-#include <gpio.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
-//#include "md380.h"
-//#include "irq_handlers.h" // hardware-specific stuff like "LCD_CS_LOW", etc
+#include <stdlib.h>
+#include <string.h>       // memset(), ...
+
+#include "gpio.h"
 #include "lcd_driver.h"   // constants + API prototypes for the *alternative* LCD driver (no "gfx")
 #include "task.h"
+#include "stm32f4xx.h"
 #include "stm32f4xx_fsmc.h"
 #include "stm32f4xx_rcc.h"
-#include "usb_cdc.h"
-
-// Regardless of the command line, let the compiler show ALL warnings from here on:
-#pragma GCC diagnostic warning "-Wall"
-
 
 extern const uint8_t font_8_8[256*8]; // extra font with 256 characters from 'codepage 437'
+
+/*
+ * Low-level LCD driver
+ *
+ * Based on a driver written by DL4YHF for a display with ST7735,
+ *   which seems to be quite compatible with the MD380 / RT3,
+ *   except for the 8-bit bus interface ("FSMC") and a few registers
+ *   in the LCD controller initialized by the original firmware .
+ *
+ * Note: Do NOT erase the screen (or portions of it) before drawing
+ *   into the framebuffer. That would cause an annoying flicker,
+ *   because this LCD controller doesn't support double buffering.
+ *   In other words, we always "paint" directly into the CURRENTLY
+ *   VISIBLE image - and painting isn't spectacularly fast !
+ */
+
 #define LCD_WriteCommand(cmd)	*(volatile uint8_t*)0x60000000 = cmd
 #define LCD_WriteData(dta)	*(volatile uint8_t*)0x60040000 = dta
-#define LCD_WritePixel(clr)			\
-    do {					\
-	    LCD_WriteData(((clr) >> 8) & 0xff);	\
-	    LCD_WriteData((clr) & 0xff);	\
-    } while(0)
+#define LCD_WritePixel(clr)				\
+	do {						\
+		LCD_WriteData(((clr) >> 8) & 0xff);	\
+		LCD_WriteData((clr) & 0xff);		\
+	} while(0)
 
-
-//---------------------------------------------------------------------------
-// Low-level LCD driver, completely bypasses Tytera's "gfx"
-//  (but doesn't reconfigure the LCD controller so we can easily switch
-//   back from the 'App Menu' into Tytera's menu, or the main screen)
-//
-// Based on a driver written by DL4YHF for a display with ST7735,
-//   which seems to be quite compatible with the MD380 / RT3,
-//   except for the 8-bit bus interface ("FSMC") and a few registers
-//   in the LCD controller initialized by the original firmware .
-//
-// Note: Do NOT erase the screen (or portions of it) before drawing
-//   into the framebuffer. That would cause an annoying flicker,
-//   because this LCD controller doesn't support double buffering.
-//   In other words, we always "paint" directly into the CURRENTLY
-//   VISIBLE image - and painting isn't spectacularly fast !
-//---------------------------------------------------------------------------
-
-  // Not the same as Tytera's "gfx_write_pixel_to_framebuffer()" (@0x8033728) !
-  // Only sends the 16-bit colour value, which requires much less accesses
-  // to the external memory interface (which STM calls "FSMC"):
-  //  9 accesses per pixel in the Tytera firmware,
-  //  2 accesses per pixel in THIS implementation.
 static void
 LCD_WritePixels( uint16_t wColor, int nRepeats )
 {
@@ -96,15 +84,15 @@ LimitInteger( int *piValue, int min, int max)
 }
 
 
+/*
+ * Sets the coordinates before writing a rectangular area of pixels.
+ * Returns the NUMBER OF PIXELS which must be sent to the controller
+ * after setting the rectangle.
+ *
+ * Request LCD_EnablePort() to have been called.
+ */
 static int
 LCD_SetOutputRect( int x1, int y1, int x2, int y2 )
-  // Sets the coordinates before writing a rectangular area of pixels.
-  // Returns the NUMBER OF PIXELS which must be sent to the controller
-  // after setting the rectangle (used at least in  ) .
-  // In the ST7735 datasheet (V2.1 by Sitronix), these are commands
-  // "CASET (2Ah): Column Address Set" and "RASET (2Bh): Row Address Set".
-  // Similar but inefficient code is @0x8033728 in D13.020,
-  // shown in the disassembly as 'gfx_write_pixel_to_framebuffer()' .
 {
 	int caset_xs, caset_xe, raset_ys, raset_ye;
 
@@ -136,67 +124,53 @@ LCD_SetOutputRect( int x1, int y1, int x2, int y2 )
 
 	LCD_WriteCommand(LCD_CMD_RAMWR);
 
-	// Do NOT de-assert LCD_CS here .. reason below !
 	return (1+x2-x1) * (1+y2-y1);
-	// The LCD controller now expects as many 16-bit pixel data
-	//     for the current drawing area as calculated above .
-	// The ST7735 has an auto-incrementing pointer, which
-	// eliminates the need to send the "output coordinate" for each
-	// pixel of a filled block, bitmap image, or character.
-	// But the Tytera firmware seems to ignore this important feature.
 }
 
-  // Inefficient method to draw anything (except maybe 'thin BRESENHAM lines').
-  // Similar to Tytera's 'gfx_write_pixel_to_framebuffer' @0x08033728 in D13.020 .
-  // When not disturbed by interrupts, it took 40 ms to fill 160*128 pixels .
+/*
+ * Inefficient method to draw anything (except maybe 'thin BRESENHAM lines').
+ * Similar to Tytera's 'gfx_write_pixel_to_framebuffer' @0x08033728 in D13.020 .
+ * When not disturbed by interrupts, it took 40 ms to fill 160*128 pixels .
+ */
 void
 LCD_SetPixelAt( int x, int y, uint16_t wColor )
 {
-	// Timing measured with the original firmware (D13.020),
-	//  when setting a single pixel. Similar result with the C code below.
-	//           __________   _   _   _   _   _   _   _   _   _________
-	// /LCD_WR :           |_| |_| |_| |_| |_| |_| |_| |_| |_|
-	//           ____       1   2   3   4   5   6   7   8   9   _____
-	// /LCD_CS :     |_________________________________________|
-	//
-	//               |<-a->|<----------- 1.36 us ----------->|b|
-	//               |<--------------- 1.93 us --------------->|
-	//                   ->| |<- t_WR_low ~ 70ns
-	//
 	LCD_EnablePort();
 	LCD_WriteCommand(LCD_CMD_CASET);
-	// ... but there's something strange in Tytera's firmware,
-	//     for reasons only they will now :
-	//     In D13.020 @8033728 ("gfx_write_pixel_to_framebuffer"),
-	//     the same 8-bit value (XS7..0) is written TWICE instead of
-	//     sending a 16-bit coordinate as in the ST7735 datasheet.
+	/*
+	 * For unknown reasons, we need to write the same value twice
+	 * rather than a 16-bit value.  In a 128x160 screen, the coordinates
+	 * will always fit in a uint8_t, so a single write would make sense,
+	 * but it seems that it needs to be each value twice.
+	 */
 	LCD_WriteData((uint8_t) x); // 2nd CASET param: "XS7 ..XS0" ("X-start", lo)
 	LCD_WriteData((uint8_t) x); // 2nd CASET param: "XS7 ..XS0" ("X-start", lo)
-//	LCD_WriteData((uint8_t) x); // 1st CASET param: "XS15..XS8" ("X-start", hi)
+	/* It seems we don't need to set an end though. */
 
 	LCD_WriteCommand(LCD_CMD_RASET);
 	LCD_WriteData((uint8_t)y); // 1st RASET param: "YS15..YS8" ("Y-start", hi)
 	LCD_WriteData((uint8_t)y); // 1st RASET param: "YS15..YS8" ("Y-start", hi)
-//	LCD_WriteData((uint8_t)y); // 2nd RASET param: "YS7 ..YS0" ("Y-start", lo)
+	/* It seems we don't need to set an end though. */
 
 	LCD_WriteCommand(LCD_CMD_RAMWR);
 	LCD_WritePixels( wColor,1 ); // (8,9) send 16-bit colour in two 8-bit writes
 	LCD_ReleasePort();
 }
 
- // Draws a frame-less, solid, filled rectangle
-void LCD_FillRect(
-        int x1, int y1,  // [in] pixel coordinate of upper left corner
-        int x2, int y2,  // [in] pixel coordinate of lower right corner
-        uint16_t wColor) // [in] filling colour (RGB565)
+/*
+ * Draws a frame-less, solid, filled rectangle, much like LCD_DrawRectangle()
+ * used to implement lines and filled rects.  Not exported though since we
+ * don't need two functions that do the same thing.
+ *
+ * This one takes the coordinates of the top-left and bottom-right corners rather
+ * than the top-left and size.
+ */
+static void
+LCD_FillRect(int x1, int y1, int x2, int y2, uint16_t wColor)
 {
 	int nPixels;
 
 	LCD_EnablePort();
-	// This function is MUCH faster than Tytera's 'gfx_blockfill'
-	//  (or whatever the original name was), because the rectangle coordinates
-	// are only sent to the display controller ONCE, instead of sending
-	// a new coordinate for each stupid pixel (which is what the original FW did):
 	nPixels = LCD_SetOutputRect( x1, y1, x2, y2 );  // send rectangle coordinates only ONCE
 
 	if( nPixels<=0 ) {
@@ -205,38 +179,48 @@ void LCD_FillRect(
 		return;
 	}
 
-	// The ST7735(?) now knows where <n> Pixels shall be written,
-	// so bang out the correct number of pixels to fill the rectangle:
 	LCD_WritePixels( wColor, nPixels );
-
 	LCD_ReleasePort();
 }
 
- // Draws a thin horizontal line ..
-void LCD_HorzLine(int x1, int y, int x2, uint16_t wColor)
+/*
+ * Draws a thin horizontal line...
+ * Much faster than Bresenham, so used when possible.
+ *
+ * Again though, no need to export it.
+ */
+static void
+LCD_HorzLine(int x1, int y, int x2, uint16_t wColor)
 {
 	LCD_FillRect( x1, y, x2, y, wColor ); // .. just a camouflaged 'fill rectangle'
 }
 
- // Draws a thin vertical line ..
-void LCD_VertLine(int x, int y, int y2, uint16_t wColor)
+/*
+ * Draws a thin vertical line...
+ * Much faster than Bresenham, so used when possible.
+ *
+ * Again though, no need to export it.
+ */
+static void
+LCD_VertLine(int x, int y, int y2, uint16_t wColor)
 {
 	LCD_FillRect( x, y, x, y2, wColor ); // .. just a camouflaged 'fill rectangle'
 }
 
-  // Fills the framebuffer with a 2D colour gradient for testing .
-  // If the colour-bit-fiddling below is ok, the display
-  // should be filled with colour gradients :
-  //       ,----------------, - y=0
-  //       |Green ...... Red|
-  //       | .            . |
-  //       | .            . |
-  //       |Cyan Blue Violet|
-  //       '----------------' - y=127
-  //       |                |
-  //      x=0              x=159
-  //
-void LCD_FastColourGradient(void) {
+/*
+ * Fills the framebuffer with a 2D colour gradient for testing.
+ *       ,----------------, - y=0
+ *       |Green ...... Red|
+ *       | .            . |
+ *       | .            . |
+ *       |Cyan Blue Violet|
+ *       '----------------' - y=127
+ *       |                |
+ *      x=0              x=159
+ */
+void
+LCD_FastColourGradient(void)
+{
 	int x, y;
 	lcd_colour_t px;
 
@@ -253,25 +237,36 @@ void LCD_FastColourGradient(void) {
 	LCD_ReleasePort();
 }
 
-void LCD_DrawRGB(uint16_t *rgb, int x, int y, int w, int h) {
+/*
+ * Draws an RGB image in the screen given the image data, top-left
+ * position, width, and height.
+ */
+void
+LCD_DrawRGB(uint16_t *rgb, int x, int y, int w, int h)
+{
 	int xx, yy;
 	int i = 0;
+
 	LCD_EnablePort();
 	if (LCD_SetOutputRect(x, y, x + w - 1, y + h - 1) <= 0) {
 		LCD_ReleasePort();
 		return;
 	}
 	for (yy = 0; yy < h; ++yy) {
-		for (xx = 0; xx < w; xx++) {
-			i = (w * yy) + xx;
+		for (xx = 0; xx < w; xx++, i++)
 			LCD_WritePixel(rgb[i]);
-		}
 	}
 	LCD_ReleasePort();
 }
 
-#include "led.h"
-void LCD_DrawRGBTransparent(uint16_t *rgb, int x, int y, int w, int h, int t) {
+/*
+ * Draws an RGB image as LCD_DrawRGB, but with a transparent colour specified.
+ * If a pixel is of the transparent colour, it is not drawn, and the screen at
+ * that position remains unchanged.
+ */
+void
+LCD_DrawRGBTransparent(uint16_t *rgb, int x, int y, int w, int h, int t)
+{
 	int xx, yy;
 	int i = 0;
 	enum rect_state {
@@ -295,11 +290,11 @@ void LCD_DrawRGBTransparent(uint16_t *rgb, int x, int y, int w, int h, int t) {
 	for (yy = y; yy < y + h && yy < LCD_SCREEN_HEIGHT; ++yy) {
 		for (xx = x; xx < x + w && xx < LCD_SCREEN_WIDTH; ++xx, ++i) {
 			if (rgb[i] == t) {
+				/*
+				 * When we hit a transparent pixel, cancel any existing
+				 * drawing rectangle.
+				 */
 				if (rect != RECTANGLE_NONE) {
-					/*
-					 * When we hit a transparent pixel, cancel any existing
-					 * drawing rectangle.
-					 */
 					LCD_WriteCommand(LCD_CMD_NOP);
 					rect = RECTANGLE_NONE;
 				}
@@ -341,8 +336,13 @@ void LCD_DrawRGBTransparent(uint16_t *rgb, int x, int y, int w, int h, int t) {
 	LCD_ReleasePort();
 }
 
-// Centre coordinates x, y; radius r; RGB colour c; fill f
-void LCD_DrawCircle(int x, int y, int r, uint16_t c, bool f) {
+/*
+ * Draws a circly centred on x/y with radius of r using colour c
+ * if f is true, the circle is solid.
+ */
+void
+LCD_DrawCircle(int x, int y, int r, uint16_t c, bool f)
+{
 	int X = 0;
 	int Y = r;
 	int D = 3 - (2 * r);
@@ -373,8 +373,14 @@ void LCD_DrawCircle(int x, int y, int r, uint16_t c, bool f) {
 	}
 }
 
-// Top left coordinates x, y; width w; height h; RGB colour c; fill f
-void LCD_DrawRectangle(int x, int y, int w, int h, uint16_t c, bool f) {
+/*
+ * Draws a rectangle with top-left position of x/y using the specified
+ * width and height of the specified colour.  If f is true, the rectangle
+ * is solid.
+ */
+void
+LCD_DrawRectangle(int x, int y, int w, int h, uint16_t c, bool f)
+{
 	if (f)
 		LCD_FillRect(x, y, x+w-1, y+h-1, c);
 	else {
@@ -388,8 +394,12 @@ void LCD_DrawRectangle(int x, int y, int w, int h, uint16_t c, bool f) {
 	}
 }
 
-// Top left coordinates x, y; terminal coordinates xx, yy; RGB colour c
-void LCD_DrawLine(int x, int y, int xx, int yy, uint16_t c) {
+/*
+ * Draws a line from x/y to xx/yy in colour c.
+ */
+void
+LCD_DrawLine(int x, int y, int xx, int yy, uint16_t c)
+{
 	uint8_t dx = xx - x;
 	uint8_t dy = yy - y;
 	int sx = x < xx ? 1 : -1;
@@ -417,105 +427,77 @@ void LCD_DrawLine(int x, int y, int xx, int yy, uint16_t c) {
 	}
 }
 
-  // Retrieves the address of a character's font bitmap, 8 * 8 pixels .
-  //  [in] 8-bit character, most likely 'codepage 437'
-  //       (details on this ancient 'VGA'-font in applet/src/font_8_8.c) .
-  // Hint: Print out the image applet/src/font_8_8.bmp to find the hex code
-  //       of any of CP437's "line drawing" character easily :
-  //       table row = upper hex digit, table column = lower hex digit.
-  //       Welcome back to the stoneage with fixed font 'text-only' screens :o)
-uint8_t *
-LCD_GetFontPixelPtr_8x8( uint8_t c)
-{
-	return (uint8_t*)(font_8_8 + 8*c);
-}
-
+/*
+ * A couple functions to apply font options
+ */
 int
-LCD_GetFontHeight( int font_options )
+LCD_GetCharHeight(int font_options)
 {
 	int font_height = 8;
+
 	if( font_options & LCD_OPT_DOUBLE_HEIGHT ) {
 		font_height *= 2;
 	}
+
 	return font_height;
 }
 
 int
-LCD_GetCharWidth( int font_options, char c )
+LCD_GetCharWidth( int font_options)
 {
 	int width = 8;
-	// As long as all fonts supported HERE are fixed-width,
-	// ignore the character code ('c')  without a warning :
-	(void)c;
 
 	if( font_options & LCD_OPT_DOUBLE_WIDTH ) {
 		width *= 2;
 	}
+
 	return width;
 }
 
+/*
+ * Draws character c at position x/y using the specified fg/bg colours and
+ * the specified font options.
+ *
+ * only redraw the screen when necessary because the QRM from the display
+ * connector cable was still audible in an SSB receiver.
+ */
 int
-LCD_GetTextWidth( int font_options, const char *pszText )
+LCD_DrawCharAt(const char c, int x, int y, uint16_t fg_color, uint16_t bg_color, int options)
 {
-	int text_width = 0;
-	if( pszText != NULL ) {
-		while(*pszText) {
-			text_width += LCD_GetCharWidth(font_options, *(pszText++) );
-		}
-	}
-	// special service for lazy callers: NULL = "average width of ONE character"
-	else {
-		text_width = LCD_GetCharWidth(font_options, 'A' );
-	}
-	return text_width;
-}
+	int x_zoom, y_zoom;		// Multiplier x/y sizes
+	int x2, y2;			// Rectangle end points
+	int font_width, font_height;	// Font data size (not output size)
+	int i;
+	const uint8_t *cp;		// Pointer to start of character data
 
-  // Returns the graphic coordinate (x) to print the next character .
-  //
-  // Speed: *MUCH* higher than with Tytera's original code (aka 'gfx'),
-  //        for reasons explained in LCD_SetOutputRect() .
-  //
-  // Drawing a zoomed character with 12 * 24 pixels took about 160 microseconds.
-  // A screen with 5*13 'large' characters was filled in less than 11 ms.
-  // Despite that, only redraw the screen when necessary because the QRM
-  // from the display connector cable was still audible in an SSB receiver.
-int
-LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
-        const char c,      // [in] character code (ASCII)
-        int x, int y,      // [in] pixel coordinate
-        uint16_t fg_color, // [in] foreground colour (RGB565)
-        uint16_t bg_color, // [in] background colour (RGB565)
-        int options )      // [in] LCD_OPT_... (bitwise combined)
-{
-	uint8_t *pbFontMatrix;
-	int x_zoom = ( options & LCD_OPT_DOUBLE_WIDTH ) ? 2 : 1;
-	int y_zoom = ( options & LCD_OPT_DOUBLE_HEIGHT) ? 2 : 1;
-	int font_width,font_height,x2,y2;
-	// use the 8*8 pixel font ?
-	pbFontMatrix = LCD_GetFontPixelPtr_8x8(c);
+	x_zoom = (options & LCD_OPT_DOUBLE_WIDTH) ? 2 : 1;
+	y_zoom = (options & LCD_OPT_DOUBLE_HEIGHT) ? 2 : 1;
 	font_width = font_height = 8;
-	x2 = x + x_zoom*font_width-1;
-	y2 = y + y_zoom*font_height-1;
-	if(x2 >=LCD_SCREEN_WIDTH ) {
-		x2 = LCD_SCREEN_WIDTH-1;
-		// Kludge to avoid an extra check in the loops further below:
-		font_width = (1+x2-x) / x_zoom;
-		x2 = x + x_zoom*font_width-1; // <- because the number of pixels
-		// sent in the loops below must exactly match the rectangle sent
-		// to the LCD controller via LCD_SetOutputRect()  !
-		// This way, characters are truncated at the right edge.
+
+	if (x >= LCD_SCREEN_WIDTH || y >= LCD_SCREEN_HEIGHT || x < 0 || y < 0)
+		return x;
+
+	cp = &font_8_8[font_height * c];
+	x2 = x + x_zoom * font_width - 1;
+	y2 = y + y_zoom * font_height - 1;
+
+	if(x2 >= LCD_SCREEN_WIDTH) {
+		/* Clip now to avoid clipping in the loop. */
+		font_width = (1 + (LCD_SCREEN_WIDTH - 1) - x) / x_zoom;
+		/* Recalculate x2 in case it's double-width to avoid half-pixels */
+		x2 = x + x_zoom * font_width - 1;
 	}
-	// similar kludge to truncate at the bottom
-	if(y2 >=LCD_SCREEN_HEIGHT ) {
-		y2 = LCD_SCREEN_HEIGHT-1;
-		font_height = (1+y2-y) / y_zoom;
+
+	if(y2 >= LCD_SCREEN_HEIGHT) {
+		/* Clip now to avoid clipping in the loop. */
+		font_height = (1 + (LCD_SCREEN_WIDTH - 1) - y) / y_zoom;
+		/* Recalculate y2 in case it's double-width to avoid half-pixels */
 		y2 = y + y_zoom*font_height-1;
 	}
 
-	// Instead of Tytera's 'gfx_drawtext' (or whatever the original name was),
-	// use an important feature of the LCD controller (ST7735 or similar) :
-	// Only set the drawing rectangle ONCE, instead of sending a new coordinate
-	// to the display for each pixel (which wasted time and caused avoidable QRM):
+	if (font_width == 0 || font_height == 0)
+		return x;
+
 	LCD_EnablePort();
 	if( LCD_SetOutputRect( x, y, x2, y2 ) <= 0 ) {
 		// something wrong with the graphic coordinates
@@ -523,25 +505,14 @@ LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
 		return x;
 	}
 
-	// Without the display rotation and mirroring, we'd use this:
-	// for( y=0; y<font_height; ++y)
-	//  { for( x=0; x<font_width; ++x)
-	//     {  ...
-	// But in an RT3/MD380 (with D13.020), the pixels must be rotated and mirrored.
-	// To avoid writing the COORDINATE to the ST7735 for each pixel in the matrix,
-	// set the output rectangle only ONCE via LCD_SetOutputRect(). After that,
-	// the pixels must be read from the font pixel matrix in a different sequence:
-
-	// read 'monochrome pixel' from font bitmap..
 	for (y=0; y<font_height; y++) {
-		for (x=0; x<font_width; x++) {
-			for (x_zoom = ( options & LCD_OPT_DOUBLE_WIDTH ) ? 2 : 1; x_zoom; x_zoom--) {
-				if( pbFontMatrix[y] & (0x80>>x) ) {
-					// approx. 1us per double-width pixel
-					LCD_WritePixels( fg_color, y_zoom );
+		for (i=0; i<y_zoom; i++) {
+			for (x=0; x<font_width; x++) {
+				if(cp[y] & (0x80>>x) ) {
+					LCD_WritePixels( fg_color, x_zoom );
 				}
 				else {
-					LCD_WritePixels( bg_color, y_zoom );
+					LCD_WritePixels( bg_color, x_zoom );
 				}
 			}
 		}
@@ -552,7 +523,9 @@ LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
 	return x2+1;
 }
 
-  // Clears the struct and sets the output clipping window to 'full screen'.
+/*
+ * Clears the context and sets the output clipping window to 'full screen'.
+ */
 void
 LCD_InitContext( lcd_context_t *pContext )
 {
@@ -561,78 +534,88 @@ LCD_InitContext( lcd_context_t *pContext )
 	pContext->y2 = LCD_SCREEN_HEIGHT-1;
 }
 
-  // Draws a zero-terminated ASCII string. Should be simple but versatile.
-  //  [in]  pContext, especially pContext->x,y = graphic output cursor .
-  //        pContext->x1,x1,x2,y2 = clipping area (planned) .
-  //  [out] pContext->x,y = graphic coordinate for the NEXT output .
-  //        Return value : horizontal position for the next character (x).
-  // For multi-line output (with '\r' or '\n' in the string),
-  //     the NEXT line for printing is stored in pContext->y .
-  // ASCII control characters with special functions :
-  //   \n (new line) : wrap into the next line, without clearing the rest
-  //   \r (carriage return) : similar, but if the text before the '\r'
-  //                   didn't fill a line on the screen, the rest will
-  //                   be filled with the background colour
-  //      (can eliminate the need for "clear screen" before printing, etc)
-  //   \t (horizontal tab) : doesn't print a 'tab' but horizontally
-  //                   CENTERS the remaining text in the current line
+/*
+ * Draws a zero-terminated ASCII string. Should be simple but versatile.
+ *  [in]  pContext, especially pContext->x,y = graphic output cursor .
+ *        pContext->x1,x1,x2,y2 = clipping area (planned) .
+ *  [out] pContext->x,y = graphic coordinate for the NEXT output .
+ *        Return value : horizontal position for the next character (x).
+ * For multi-line output (with '\r' or '\n' in the string),
+ *     the NEXT line for printing is stored in pContext->y .
+ * ASCII control characters with special functions :
+ *   \n (new line) : wrap into the next line, without clearing the rest
+ *   \r (carriage return) : similar, but if the text before the '\r'
+ *                   didn't fill a line on the screen, the rest will
+ *                   be filled with the background colour
+ *      (can eliminate the need for "clear screen" before printing, etc)
+ *   \t (horizontal tab) : doesn't print a 'tab' but horizontally
+ *                   CENTERS the remaining text in the current line
+ */
 int
-LCD_DrawString( lcd_context_t *pContext, const char *cp )
+LCD_DrawString(lcd_context_t *pContext, const char *cp)
 {
-	int fh = LCD_GetFontHeight(pContext->font);
+	int fh;
+	int fw;
 	int w;
-	int left_margin = pContext->x; // for '\r' or '\n', not pContext->x1 !
-	int x = pContext->x;
-	int y = pContext->y;
-	unsigned char c;
-	const unsigned char *cp2;
-	while( (c=*cp++) != 0 ) {
-		switch(c) {
-		case '\r' :     // carriage return : almost the same as 'new line', but..
-		                // as a service for flicker-free output, CLEARS ALL UNTIL THE END
-		                // OF THE CURRENT LINE, so clearing the screen is unnecessary.
-			LCD_FillRect( x, y, pContext->x2, y+fh-1, pContext->bg_color );
-			// NO BREAK HERE !
-		case '\n' :     // new line WITHOUT clearing the rest of the current line
-			x = left_margin;
-			y += fh;
+	const char *cp2;
+
+	fh = LCD_GetCharHeight(pContext->font);
+	fw = LCD_GetCharWidth(pContext->font);
+	for (; *cp; cp++) {
+		switch(*cp) {
+		case '\r':
+			/*
+			 * carriage return : almost the same as 'new line', but..
+			 * as a service for flicker-free output, CLEARS ALL UNTIL THE END
+			 * OF THE CURRENT LINE, so clearing the screen is unnecessary.
+			 */
+			LCD_FillRect( pContext->x, pContext->y, pContext->x2, pContext->y + fh - 1, pContext->bg_color );
+			/* Fall-through */
+		case '\n':
+			pContext->x = pContext->x1;
+			pContext->y += fh;
 			break;
-		case '\t' :  // horizontally CENTER the text in the rest of the line
-			w = 0; // measure the width UNTIL THE NEXT CONTROL CHARACTER:
-			cp2 = (unsigned char*)cp;
-			while( (c=*cp2++) >= 32 ) {
-				w += LCD_GetCharWidth( pContext->font, c ); // suited for proportional fonts (which we don't have here yet?)
+		case '\t':  // horizontally CENTER the text in the rest of the line
+			for (cp2 = cp+1; *cp2; cp2++) {
+				if (*cp2 == '\t' || *cp2 == '\n' || *cp2 == '\r')
+					break;
 			}
-			w = (pContext->x2 - x - w) / 2; // "-> half remaining width"
-			if( w>0 ) {
-				LCD_FillRect( x, y, x+w-1, y+fh-1, pContext->bg_color );
-				x += w;
+			w = ((cp2 - cp - 1) * fw);
+			w = (pContext->x2 - pContext->x - w) / 2; // "-> half remaining width"
+			if(w > 0) {
+				LCD_FillRect(pContext->x, pContext->y,
+				    pContext->x + w - 1, pContext->y + fh - 1, pContext->bg_color);
+				pContext->x += w;
 			}
 			break;
 		default   :  // anything should be 'printable' :
-			x = LCD_DrawCharAt( c, x, y, pContext->fg_color, pContext->bg_color, pContext->font );
+			pContext->x = LCD_DrawCharAt( *cp, pContext->x, pContext->y,
+			    pContext->fg_color, pContext->bg_color, pContext->font );
 			break;
 		}
 	}
-	// Store the new "output cursor position" (graphic coord) for the NEXT string:
-	pContext->x = x;
-	pContext->y = y;
-	return x;
+	return pContext->x;
 }
 
-  // Almost the same as LCD_DrawString,
-  // but with all goodies supported by tinyprintf .
-  // Total length of the output should not exceed 80 characters.
+/*
+ * printf() wrapper around LCD_DrawString()
+ */
 int
-LCD_Printf( lcd_context_t *pContext, const char *fmt, ... )
+LCD_Printf(lcd_context_t *pContext, const char *fmt, ...)
 {
-	char szTemp[84]; // how large is the stack ? Dare to use more ?
+	char *s = NULL;
+	int rc;
+
 	va_list va;
 	va_start(va, fmt);
-	vsnprintf(szTemp, sizeof(szTemp)-1, fmt, va );
+	if (vasprintf(&s, fmt, va ) == -1 || s == NULL) {
+		va_end(va);
+		return pContext->x;
+	}
 	va_end(va);
-	szTemp[sizeof(szTemp)-1] = '\0';
-	return LCD_DrawString( pContext, szTemp );
+	rc = LCD_DrawString(pContext, s);
+	free(s);
+	return rc;
 }
 
 /**************************************************************************/
@@ -640,7 +623,8 @@ LCD_Printf( lcd_context_t *pContext, const char *fmt, ... )
     Display Driver Lowest Layer Settings.
 */
 /**************************************************************************/
-static void FSMC_Conf(void)
+static void
+FSMC_Conf(void)
 {
 	FSMC_NORSRAMInitTypeDef FSMC_NORSRAMInitStructure;
 	FSMC_NORSRAMTimingInitTypeDef  p;

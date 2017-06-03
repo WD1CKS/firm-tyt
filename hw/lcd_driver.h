@@ -138,12 +138,6 @@ typedef struct tLcdContext
 void LimitInteger( int *piValue, int min, int max);
 void LCD_SetPixelAt( int x, int y, uint16_t wColor ); // inefficient.. avoid if possible
 
-void LCD_FillRect( // Draws a frame-less, solid, filled rectangle
-        int x1, int y1,  // [in] pixel coordinate of upper left corner
-        int x2, int y2,  // [in] pixel coordinate of lower right corner
-        uint16_t wColor); // [in] filling colour (RGB565)
-void LCD_HorzLine( int x1, int y, int x2, uint16_t wColor );
-
 void LCD_FastColourGradient(void); // Fills the framebuffer with a
   // 2D color gradient. Used for testing .. details in lcd_driver.c .
 
@@ -157,9 +151,8 @@ uint8_t *LCD_GetFontPixelPtr_8x8( uint8_t c);
 // Prototypes for MID-LEVEL LCD driver functions (text output, etc)
 //---------------------------------------------------------------------------
 
-int LCD_GetFontHeight(int font_options );
-int LCD_GetCharWidth( int font_options, char c );
-int LCD_GetTextWidth( int font_options, const char *pszText );
+int LCD_GetCharHeight(int font_options);
+int LCD_GetCharWidth(int font_options);
 
 int LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
         char c,            // [in] character code (ASCII)

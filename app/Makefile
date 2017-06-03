@@ -42,13 +42,33 @@ CC=		arm-none-eabi-gcc
 AR=		arm-none-eabi-ar rcu
 OBJCOPY=	arm-none-eabi-objcopy
 RANLIB=		arm-none-eabi-ranlib
-CPPFLAGS+=	-DUSE_USB_OTG_FS -I../FreeRTOS/Source/include/ -I../FreeRTOS/ -I../FreeRTOS/Source/portable/GCC/ARM_CM4F -Ilua/src -I../stdperiph -I../hw
-CFLAGS=		-Wall -Wextra -g -fverbose-asm -O2 -flto -std=gnu99 -mthumb -mcpu=cortex-m4 -mthumb-interwork -mfloat-abi=hard -mfpu=fpv4-sp-d16
-LDFLAGS=	-Wl,--script=stm32f405_flash_app.lds,-Map=firm-tyt.map -L.
+CPPFLAGS+=	-DUSE_USB_OTG_FS \
+		-D_GNU_SOURCE \
+		-I../FreeRTOS/Source/include/ \
+		-I../FreeRTOS/ \
+		-I../FreeRTOS/Source/portable/GCC/ARM_CM4F \
+		-Ilua/src \
+		-I../stdperiph \
+		-I../hw
+CFLAGS=		-Wall \
+		-Wextra \
+		-g \
+		-fverbose-asm \
+		-O2 \
+		-flto \
+		-std=gnu11 \
+		-mthumb \
+		-mcpu=cortex-m4 \
+		-mthumb-interwork \
+		-mfloat-abi=hard \
+		-mfpu=fpv4-sp-d16
+LDFLAGS=	-Wl,--script=stm32f405_flash_app.lds,-Map=firm-tyt.map \
+		-L.
 .export
-LDLIBS=		-llua -lm
 .ifdef LUA
   CFLAGS+=	-DCODEPLUGS
+  LDLIBS+=	-llua -lm
+  LUADEP+=	liblua.a
 .endif
 
 firm-tyt.bin: firm-tyt.img
@@ -62,7 +82,7 @@ liblua.a:
 firm-tyt.img: firm-tyt.elf
 	$(OBJCOPY) -O binary $> $@
 
-firm-tyt.elf: $(SRCS) liblua.a
+firm-tyt.elf: $(SRCS) $(LUADEP)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(ASFLAGS) $(LDFLAGS) $(SRCS) $(LDLIBS) -o $@ $(REDIR)
 
 clean:
