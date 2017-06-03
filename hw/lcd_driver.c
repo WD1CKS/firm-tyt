@@ -1,18 +1,10 @@
-// File:    md380tools/applet/src/lcd_driver.c
-// Author:  Wolf (DL4YHF) [initial version]
-// Date:    2017-04-14
-//  Implements a simple LCD driver for Retevis RT3 / Tytera MD380 / etc .
-//  Works much better (!) than the stock driver in the original firmware
-//             as far as speed and QRM(!) from the display cable is concerned.
-//  Written for the 'alternative setup menu', but no dependcies from that,
-//  thus may also be used to replace the 'console' display for Netmon & Co.
-//
-// To include this alternative LCD driver in the patched firmware,
-//   add the following lines in applet/Makefile :
-//      SRCS += lcd_driver.o
-//      SRCS += lcd_fonts.o
-//      SRCS += font_8_8.o
-//
+/*
+ * File:    md380tools/applet/src/lcd_driver.c
+ * Author:  Wolf (DL4YHF) [initial version]
+ * Date:    2017-04-14
+ * 
+ * Implements a simple LCD driver for Retevis RT3 / Tytera MD380 / etc .
+ */
 
 #include <stdarg.h>
 #include <stdbool.h>
