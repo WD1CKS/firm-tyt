@@ -114,14 +114,13 @@ typedef union tLcdColour
 
 typedef struct tLcdContext
 {
-  int x,y;  // graphic output coord, updated after printing each character .
-  uint16_t fg_color, bg_color; // foreground and background colour
-  int font; // current font, zoom, and character output options
+  uint32_t font; // current font, zoom, and character output options
             // (bitwise combineable, LCD_OPT_FONT_...)
-  int x1, y1, x2, y2; // simple clipping and margins for 'printing'.
+  uint16_t fg_color, bg_color; // foreground and background colour
+  uint8_t x1, y1, x2, y2; // simple clipping and margins for 'printing'.
+  uint8_t x,y;  // graphic output coord, updated after printing each character .
   // The above range is set for 'full screen' in LCD_InitContext.
 } lcd_context_t;
-
 
 //---------------------------------------------------------------------------
 // Global vars - use a few as possible, there's not much RAM to waste !
@@ -135,8 +134,7 @@ typedef struct tLcdContext
 // Prototypes for LOW-LEVEL LCD driver functions
 //---------------------------------------------------------------------------
 
-void LimitInteger( int *piValue, int min, int max);
-void LCD_SetPixelAt( int x, int y, uint16_t wColor ); // inefficient.. avoid if possible
+void LCD_SetPixelAt( uint8_t x, uint8_t y, uint16_t wColor ); // inefficient.. avoid if possible
 
 void LCD_FastColourGradient(void); // Fills the framebuffer with a
   // 2D color gradient. Used for testing .. details in lcd_driver.c .
@@ -151,33 +149,33 @@ uint8_t *LCD_GetFontPixelPtr_8x8( uint8_t c);
 // Prototypes for MID-LEVEL LCD driver functions (text output, etc)
 //---------------------------------------------------------------------------
 
-int LCD_GetCharHeight(int font_options);
-int LCD_GetCharWidth(int font_options);
+uint8_t LCD_GetCharHeight(uint32_t font_options);
+uint8_t LCD_GetCharWidth(uint32_t font_options);
 
-int LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
+uint8_t LCD_DrawCharAt( // lowest level of 'text output' into the framebuffer
         char c,            // [in] character code (ASCII)
-        int x, int y,      // [in] pixel coordinate
+        uint8_t x, uint8_t y,      // [in] pixel coordinate
         uint16_t fg_color, // [in] foreground colour (BGR565)
         uint16_t bg_color, // [in] background colour (BGR565)
-        int options );     // [in] LCD_OPT_... (bitwise combined)
+        uint32_t options );     // [in] LCD_OPT_... (bitwise combined)
   // Returns the graphic coordinate (x) to print the next character .
 
-void LCD_InitContext( lcd_context_t *pContext );
+void LCD_InitContext(lcd_context_t *pContext);
   // Clears the struct and sets the output clipping window to 'full screen'.
 
-int LCD_DrawString( lcd_context_t *pContext, const char *cp );
+uint8_t LCD_DrawString(lcd_context_t *pContext, const char *cp);
   // Draws a zero-terminated ASCII string.
   // Returns the graphic coordinate (x) to print the next character .
 
-int LCD_Printf( lcd_context_t *pContext, const char *fmt, ... );
+uint8_t LCD_Printf(lcd_context_t *pContext, const char *fmt, ... );
   // Almost the same as LCD_DrawString,
   // but with all goodies supported by tinyprintf .
 
-void LCD_DrawRGB(uint16_t *rgb, int x, int y, int w, int h);
-void LCD_DrawRGBTransparent(uint16_t *rgb, int x, int y, int w, int h, int t);
-void LCD_DrawCircle(int x, int y, int r, uint16_t c, bool f);
-void LCD_DrawRectangle(int x, int y, int w, int h, uint16_t c, bool f);
-void LCD_DrawLine(int x, int y, int xx, int yy, uint16_t c);
+void LCD_DrawRGB(uint16_t *rgb, uint8_t x, uint8_t y, uint8_t w, uint8_t h);
+void LCD_DrawRGBTransparent(uint16_t *rgb, uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t t);
+void LCD_DrawCircle(uint8_t x, uint8_t y, uint8_t r, uint16_t c, bool f);
+void LCD_DrawRectangle(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t c, bool f);
+void LCD_DrawLine(uint8_t x, uint8_t y, uint8_t xx, uint8_t yy, uint16_t c);
 
 void LCD_Init(void);
 void LCD_EnablePort(void);

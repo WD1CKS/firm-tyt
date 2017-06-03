@@ -54,16 +54,18 @@ extern const uint8_t font_8_8[256*8]; // extra font with 256 characters from 'co
 	} while(0)
 
 static void
-LCD_WritePixels( uint16_t wColor, int nRepeats )
+LCD_WritePixels( uint16_t wColor, uint16_t nRepeats )
 {
 	while( nRepeats-- )
 		LCD_WritePixel(wColor);
 }
 
-void
-LimitInteger( int *piValue, int min, int max)
+static void
+LimitUInt8( uint8_t *piValue, uint8_t min, uint8_t max)
 {
-	int value = *piValue;
+	uint8_t value;
+
+	value = *piValue;
 	if( value < min ) {
 		value = min;
 	}
@@ -81,36 +83,29 @@ LimitInteger( int *piValue, int min, int max)
  *
  * Request LCD_EnablePort() to have been called.
  */
-static int
-LCD_SetOutputRect( int x1, int y1, int x2, int y2 )
+static uint16_t
+LCD_SetOutputRect(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2)
 {
-	int caset_xs, caset_xe, raset_ys, raset_ye;
-
 	// Crude clipping, not bullet-proof but better than nothing:
-	LimitInteger( &x1, 0, LCD_SCREEN_WIDTH-1 );
-	LimitInteger( &x2, 0, LCD_SCREEN_WIDTH-1 );
-	LimitInteger( &y1, 0, LCD_SCREEN_HEIGHT-1 );
-	LimitInteger( &y2, 0, LCD_SCREEN_HEIGHT-1 );
-	if( x1>x2 || y1>y2 ) {
-		return 0;
-	}
+	LimitUInt8(&x1, 0, LCD_SCREEN_WIDTH-1);
+	LimitUInt8(&x2, 0, LCD_SCREEN_WIDTH-1);
+	LimitUInt8(&y1, 0, LCD_SCREEN_HEIGHT-1);
+	LimitUInt8(&y2, 0, LCD_SCREEN_HEIGHT-1);
 
-	caset_xs = x1;
-	caset_xe = x2;
-	raset_ys = y1;
-	raset_ye = y2;
+	if(x1>x2 || y1>y2)
+		return 0;
 
 	LCD_WriteCommand(LCD_CMD_CASET);
-	LCD_WriteData((uint8_t)caset_xs);
-	LCD_WriteData((uint8_t)caset_xs);
-	LCD_WriteData((uint8_t)caset_xe);
-	LCD_WriteData((uint8_t)caset_xe);
+	LCD_WriteData(x1);
+	LCD_WriteData(x1);
+	LCD_WriteData(x2);
+	LCD_WriteData(x2);
 
 	LCD_WriteCommand(LCD_CMD_RASET);
-	LCD_WriteData((uint8_t)raset_ys);
-	LCD_WriteData((uint8_t)raset_ys);
-	LCD_WriteData((uint8_t)raset_ye);
-	LCD_WriteData((uint8_t)raset_ye);
+	LCD_WriteData(y1);
+	LCD_WriteData(y1);
+	LCD_WriteData(y2);
+	LCD_WriteData(y2);
 
 	LCD_WriteCommand(LCD_CMD_RAMWR);
 
@@ -123,7 +118,7 @@ LCD_SetOutputRect( int x1, int y1, int x2, int y2 )
  * When not disturbed by interrupts, it took 40 ms to fill 160*128 pixels .
  */
 void
-LCD_SetPixelAt( int x, int y, uint16_t wColor )
+LCD_SetPixelAt(uint8_t x, uint8_t y, uint16_t wColor)
 {
 	LCD_EnablePort();
 	LCD_WriteCommand(LCD_CMD_CASET);
@@ -133,17 +128,17 @@ LCD_SetPixelAt( int x, int y, uint16_t wColor )
 	 * will always fit in a uint8_t, so a single write would make sense,
 	 * but it seems that it needs to be each value twice.
 	 */
-	LCD_WriteData((uint8_t) x); // 2nd CASET param: "XS7 ..XS0" ("X-start", lo)
-	LCD_WriteData((uint8_t) x); // 2nd CASET param: "XS7 ..XS0" ("X-start", lo)
+	LCD_WriteData(x); // 2nd CASET param: "XS7 ..XS0" ("X-start", lo)
+	LCD_WriteData(x); // 2nd CASET param: "XS7 ..XS0" ("X-start", lo)
 	/* It seems we don't need to set an end though. */
 
 	LCD_WriteCommand(LCD_CMD_RASET);
-	LCD_WriteData((uint8_t)y); // 1st RASET param: "YS15..YS8" ("Y-start", hi)
-	LCD_WriteData((uint8_t)y); // 1st RASET param: "YS15..YS8" ("Y-start", hi)
+	LCD_WriteData(y); // 1st RASET param: "YS15..YS8" ("Y-start", hi)
+	LCD_WriteData(y); // 1st RASET param: "YS15..YS8" ("Y-start", hi)
 	/* It seems we don't need to set an end though. */
 
 	LCD_WriteCommand(LCD_CMD_RAMWR);
-	LCD_WritePixels( wColor,1 ); // (8,9) send 16-bit colour in two 8-bit writes
+	LCD_WritePixels(wColor, 1);
 	LCD_ReleasePort();
 }
 
@@ -156,20 +151,20 @@ LCD_SetPixelAt( int x, int y, uint16_t wColor )
  * than the top-left and size.
  */
 static void
-LCD_FillRect(int x1, int y1, int x2, int y2, uint16_t wColor)
+LCD_FillRect(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint16_t wColor)
 {
-	int nPixels;
+	uint16_t nPixels;
 
 	LCD_EnablePort();
-	nPixels = LCD_SetOutputRect( x1, y1, x2, y2 );  // send rectangle coordinates only ONCE
+	nPixels = LCD_SetOutputRect(x1, y1, x2, y2);  // send rectangle coordinates only ONCE
 
-	if( nPixels<=0 ) {
+	if (nPixels<=0) {
 		// something wrong with the coordinates
 		LCD_ReleasePort();
 		return;
 	}
 
-	LCD_WritePixels( wColor, nPixels );
+	LCD_WritePixels(wColor, nPixels);
 	LCD_ReleasePort();
 }
 
@@ -180,9 +175,9 @@ LCD_FillRect(int x1, int y1, int x2, int y2, uint16_t wColor)
  * Again though, no need to export it.
  */
 static void
-LCD_HorzLine(int x1, int y, int x2, uint16_t wColor)
+LCD_HorzLine(uint8_t x1, uint8_t y, uint8_t x2, uint16_t wColor)
 {
-	LCD_FillRect( x1, y, x2, y, wColor ); // .. just a camouflaged 'fill rectangle'
+	LCD_FillRect(x1, y, x2, y, wColor); // .. just a camouflaged 'fill rectangle'
 }
 
 /*
@@ -192,9 +187,9 @@ LCD_HorzLine(int x1, int y, int x2, uint16_t wColor)
  * Again though, no need to export it.
  */
 static void
-LCD_VertLine(int x, int y, int y2, uint16_t wColor)
+LCD_VertLine(uint8_t x, uint8_t y, uint8_t y2, uint16_t wColor)
 {
-	LCD_FillRect( x, y, x, y2, wColor ); // .. just a camouflaged 'fill rectangle'
+	LCD_FillRect(x, y, x, y2, wColor); // .. just a camouflaged 'fill rectangle'
 }
 
 /*
@@ -211,8 +206,8 @@ LCD_VertLine(int x, int y, int y2, uint16_t wColor)
 void
 LCD_FastColourGradient(void)
 {
-	int x, y;
 	lcd_colour_t px;
+	uint8_t x, y;
 
 	LCD_EnablePort();
 	LCD_SetOutputRect(0, 0, LCD_SCREEN_WIDTH - 1, LCD_SCREEN_HEIGHT - 1);
@@ -232,17 +227,17 @@ LCD_FastColourGradient(void)
  * position, width, and height.
  */
 void
-LCD_DrawRGB(uint16_t *rgb, int x, int y, int w, int h)
+LCD_DrawRGB(uint16_t *rgb, uint8_t x, uint8_t y, uint8_t w, uint8_t h)
 {
-	int xx, yy;
-	int i = 0;
+	uint16_t i;
+	uint8_t xx, yy;
 
 	LCD_EnablePort();
 	if (LCD_SetOutputRect(x, y, x + w - 1, y + h - 1) <= 0) {
 		LCD_ReleasePort();
 		return;
 	}
-	for (yy = 0; yy < h; ++yy) {
+	for (i = 0, yy = 0; yy < h; ++yy) {
 		for (xx = 0; xx < w; xx++, i++)
 			LCD_WritePixel(rgb[i]);
 	}
@@ -255,10 +250,10 @@ LCD_DrawRGB(uint16_t *rgb, int x, int y, int w, int h)
  * that position remains unchanged.
  */
 void
-LCD_DrawRGBTransparent(uint16_t *rgb, int x, int y, int w, int h, int t)
+LCD_DrawRGBTransparent(uint16_t *rgb, uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t t)
 {
-	int xx, yy;
-	int i = 0;
+	uint16_t i;
+	uint8_t xx, yy;
 	enum rect_state {
 		RECTANGLE_NONE,
 		RECTANGLE_LINE,
@@ -277,7 +272,7 @@ LCD_DrawRGBTransparent(uint16_t *rgb, int x, int y, int w, int h, int t)
 	else {
 		rect = RECTANGLE_NONE;
 	}
-	for (yy = y; yy < y + h && yy < LCD_SCREEN_HEIGHT; ++yy) {
+	for (yy = y, i = 0; yy < y + h && yy < LCD_SCREEN_HEIGHT; ++yy) {
 		for (xx = x; xx < x + w && xx < LCD_SCREEN_WIDTH; ++xx, ++i) {
 			if (rgb[i] == t) {
 				/*
@@ -331,11 +326,12 @@ LCD_DrawRGBTransparent(uint16_t *rgb, int x, int y, int w, int h, int t)
  * if f is true, the circle is solid.
  */
 void
-LCD_DrawCircle(int x, int y, int r, uint16_t c, bool f)
+LCD_DrawCircle(uint8_t x, uint8_t y, uint8_t r, uint16_t c, bool f)
 {
-	int X = 0;
-	int Y = r;
 	int D = 3 - (2 * r);
+	uint8_t X = 0;
+	uint8_t Y = r;
+
 	while (X < Y) {
 		if (f) {
 			LCD_HorzLine(x - X, y + Y, x + X - 1, c);
@@ -369,7 +365,7 @@ LCD_DrawCircle(int x, int y, int r, uint16_t c, bool f)
  * is solid.
  */
 void
-LCD_DrawRectangle(int x, int y, int w, int h, uint16_t c, bool f)
+LCD_DrawRectangle(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t c, bool f)
 {
 	if (f)
 		LCD_FillRect(x, y, x+w-1, y+h-1, c);
@@ -388,14 +384,20 @@ LCD_DrawRectangle(int x, int y, int w, int h, uint16_t c, bool f)
  * Draws a line from x/y to xx/yy in colour c.
  */
 void
-LCD_DrawLine(int x, int y, int xx, int yy, uint16_t c)
+LCD_DrawLine(uint8_t x, uint8_t y, uint8_t xx, uint8_t yy, uint16_t c)
 {
-	uint8_t dx = xx - x;
-	uint8_t dy = yy - y;
-	int sx = x < xx ? 1 : -1;
-	int sy = y < yy ? 1 : -1;
-	int err = dx - dy;
-	int e2;
+	int16_t sx;
+	int16_t sy;
+	int16_t err;
+	int16_t e2;
+	int16_t dx;
+	int16_t dy;
+
+	sx = x < xx ? 1 : -1;
+	sy = y < yy ? 1 : -1;
+	dx = xx - x;
+	dy = yy - y;
+	err = dx - dy;
 
 	if (x == xx)
 		LCD_VertLine(x, y, yy, c);
@@ -420,8 +422,8 @@ LCD_DrawLine(int x, int y, int xx, int yy, uint16_t c)
 /*
  * A couple functions to apply font options
  */
-int
-LCD_GetCharHeight(int font_options)
+uint8_t
+LCD_GetCharHeight(uint32_t font_options)
 {
 	int font_height = 8;
 
@@ -432,8 +434,8 @@ LCD_GetCharHeight(int font_options)
 	return font_height;
 }
 
-int
-LCD_GetCharWidth( int font_options)
+uint8_t
+LCD_GetCharWidth(uint32_t font_options)
 {
 	int width = 8;
 
@@ -451,20 +453,20 @@ LCD_GetCharWidth( int font_options)
  * only redraw the screen when necessary because the QRM from the display
  * connector cable was still audible in an SSB receiver.
  */
-int
-LCD_DrawCharAt(const char c, int x, int y, uint16_t fg_color, uint16_t bg_color, int options)
+uint8_t
+LCD_DrawCharAt(const char c, uint8_t x, uint8_t y, uint16_t fg_color, uint16_t bg_color, uint32_t options)
 {
-	int x_zoom, y_zoom;		// Multiplier x/y sizes
-	int x2, y2;			// Rectangle end points
-	int font_width, font_height;	// Font data size (not output size)
-	int i;
 	const uint8_t *cp;		// Pointer to start of character data
+	uint8_t x_zoom, y_zoom;		// Multiplier x/y sizes
+	uint8_t x2, y2;			// Rectangle end points
+	uint8_t font_width, font_height;	// Font data size (not output size)
+	uint8_t i;
 
 	x_zoom = (options & LCD_OPT_DOUBLE_WIDTH) ? 2 : 1;
 	y_zoom = (options & LCD_OPT_DOUBLE_HEIGHT) ? 2 : 1;
 	font_width = font_height = 8;
 
-	if (x >= LCD_SCREEN_WIDTH || y >= LCD_SCREEN_HEIGHT || x < 0 || y < 0)
+	if (x >= LCD_SCREEN_WIDTH || y >= LCD_SCREEN_HEIGHT)
 		return x;
 
 	cp = &font_8_8[font_height * c];
@@ -541,13 +543,13 @@ LCD_InitContext( lcd_context_t *pContext )
  *   \t (horizontal tab) : doesn't print a 'tab' but horizontally
  *                   CENTERS the remaining text in the current line
  */
-int
+uint8_t
 LCD_DrawString(lcd_context_t *pContext, const char *cp)
 {
-	int fh;
-	int fw;
-	int w;
 	const char *cp2;
+	int w;
+	uint8_t fh;
+	uint8_t fw;
 
 	fh = LCD_GetCharHeight(pContext->font);
 	fw = LCD_GetCharWidth(pContext->font);
@@ -590,11 +592,11 @@ LCD_DrawString(lcd_context_t *pContext, const char *cp)
 /*
  * printf() wrapper around LCD_DrawString()
  */
-int
+uint8_t
 LCD_Printf(lcd_context_t *pContext, const char *fmt, ...)
 {
 	char *s = NULL;
-	int rc;
+	uint8_t rc;
 
 	va_list va;
 	va_start(va, fmt);
