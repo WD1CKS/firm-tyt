@@ -26,14 +26,12 @@ Controls_Init(void)
 	gpio_input_setup(GPIOB, GPIO_Pin_10 | GPIO_Pin_11, GPIO_PuPd_NOPULL);
 	gpio_input_setup(GPIOE, GPIO_Pin_14 | GPIO_Pin_15 | GPIO_Pin_11, GPIO_PuPd_NOPULL);
 
-	/* And the volume pot, temp sensor, battery sensor, etc */
+	/* And ADC1 */
 	ADC1_Mutex = xSemaphoreCreateMutex();
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-	ADC_TempSensorVrefintCmd(ENABLE);
-	gpio_analog_setup(pin_a0->bank, pin_a0->pin | pin_a1->pin, GPIO_PuPd_NOPULL);
 
 	aci.ADC_Mode = ADC_Mode_Independent;
-	aci.ADC_Prescaler = ADC_Prescaler_Div4;
+	aci.ADC_Prescaler = ADC_Prescaler_Div2;
 	aci.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
 	aci.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 	ADC_CommonInit(&aci);
@@ -79,52 +77,64 @@ Encoder_Read(void)
 	    (pin_read(pin_ecn3) << 3)];
 }
 
-static int
-ADC1_Read(uint8_t chan)
+static uint16_t
+ADC1_Read(uint8_t chan, const struct gpio_pin_def *pin)
 {
-	int ret;
+	uint16_t ret;
 
 	xSemaphoreTake(ADC1_Mutex, portMAX_DELAY);
+	if (pin)
+		gpio_analog_setup(pin->bank, pin->pin, GPIO_PuPd_NOPULL);
 	ADC_RegularChannelConfig(ADC1, chan, 1, ADC_SampleTime_480Cycles);
 	ADC_SoftwareStartConv(ADC1);
 	while (ADC_GetSoftwareStartConvStatus(ADC1) != RESET)
 		vTaskDelay(1);
 	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
 		vTaskDelay(1);
+	if (pin)
+		gpio_input_setup(pin->bank, pin->pin, GPIO_PuPd_NOPULL);
 	ret = ADC_GetConversionValue(ADC1);
 	xSemaphoreGive(ADC1_Mutex);
 	return ret;
 }
 
-int
+uint16_t
 VOL_Read(void)
 {
-	return ADC1_Read(ADC_Channel_0);
+	return ADC1_Read(ADC_Channel_0, pin_a0);
 }
 
-int
+uint16_t
 BATT_Read(void)
 {
-	return ADC1_Read(ADC_Channel_1);
+	return ADC1_Read(ADC_Channel_1, pin_a1);
 }
 
-int
+uint16_t
 BATT2_Read(void)
 {
+	uint16_t rc;
+
 	ADC_VBATCmd(ENABLE);
-	return ADC1_Read(ADC_Channel_18);
+	rc = ADC1_Read(ADC_Channel_18, NULL);
 	ADC_VBATCmd(DISABLE);
+	return rc;
 }
 
-int
+uint16_t
 Temp_Read(void)
 {
-	return ADC1_Read(ADC_Channel_16);
+	uint16_t rc;
+
+	ADC_TempSensorVrefintCmd(ENABLE);
+	rc = ADC1_Read(ADC_Channel_16, NULL);
+	ADC_TempSensorVrefintCmd(DISABLE);
+	return rc;
 }
 
 /* Applies the taper to generate a 1-10 number */
-int
-VOL_Taper(int vol)
+uint8_t
+VOL_Taper(uint16_t vol)
 {
 	if (vol < 350)
 		return (vol/70)+1;
