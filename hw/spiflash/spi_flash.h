@@ -153,6 +153,7 @@ void sFLASH_EraseBulk(void);
 void sFLASH_WritePage(uint8_t* pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite);
 void sFLASH_WriteBuffer(uint8_t* pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite);
 void sFLASH_ReadBuffer(uint8_t* pBuffer, uint32_t ReadAddr, uint16_t NumByteToRead);
+void sFLASH_ReadSecurityBuffer(uint8_t* pBuffer, uint32_t ReadAddr, uint16_t NumByteToRead);
 uint32_t sFLASH_ReadID(void);
 void sFLASH_StartReadSequence(uint32_t ReadAddr);
 

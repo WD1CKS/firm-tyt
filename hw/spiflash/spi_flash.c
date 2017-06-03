@@ -330,6 +330,42 @@ void sFLASH_ReadBuffer(uint8_t* pBuffer, uint32_t ReadAddr, uint16_t NumByteToRe
 }
 
 /**
+  * @brief  Reads a block of data from the FLASH security registers.
+  * @param  pBuffer: pointer to the buffer that receives the data read from the FLASH security registers.
+  * @param  ReadAddr: FLASH's internal address to read from.
+  * @param  NumByteToRead: number of bytes to read from the FLASH.
+  * @retval None
+  */
+void sFLASH_ReadSecurityBuffer(uint8_t* pBuffer, uint32_t ReadAddr, uint16_t NumByteToRead)
+{
+  /*!< Select the FLASH: Chip Select low */
+  sFLASH_CS_LOW();
+
+  /*!< Send "Read Security Registers " instruction */
+  sFLASH_SendByte(sFLASH_CMD_RSR);
+
+  /*!< Send ReadAddr high nibble address byte to read from */
+  sFLASH_SendByte((ReadAddr & 0xFF0000) >> 16);
+  /*!< Send ReadAddr medium nibble address byte to read from */
+  sFLASH_SendByte((ReadAddr& 0xFF00) >> 8);
+  /*!< Send ReadAddr low nibble address byte to read from */
+  sFLASH_SendByte(ReadAddr & 0xFF);
+  /*!< Dummy byte to allow setup time */
+  sFLASH_SendByte(sFLASH_DUMMY_BYTE);
+
+  while (NumByteToRead--) /*!< while there is data to be read */
+  {
+    /*!< Read a byte from the FLASH */
+    *pBuffer = sFLASH_SendByte(sFLASH_DUMMY_BYTE);
+    /*!< Point to the next location where the byte read will be saved */
+    pBuffer++;
+  }
+
+  /*!< Deselect the FLASH: Chip Select high */
+  sFLASH_CS_HIGH();
+}
+
+/**
   * @brief  Reads FLASH identification.
   * @param  None
   * @retval FLASH identification

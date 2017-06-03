@@ -687,7 +687,7 @@ void LCD_Init(void)
 {
 	uint8_t config;
 
-	sFLASH_ReadBuffer(&config, 0x211d, 1);
+	sFLASH_ReadSecurityBuffer(&config, 0x301d, 1);
 	LCD_Mutex = xSemaphoreCreateMutex();
 	RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FSMC, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
