@@ -6,6 +6,11 @@ SRCS=	blink.c \
 	../hw/gpio.c \
 	../hw/lcd_driver.c \
 	../hw/led.c \
+	../hw/spiffs/spiffs_cache.c \
+	../hw/spiffs/spiffs_gc.c \
+	../hw/spiffs/spiffs_nucleus.c \
+	../hw/spiffs/spiffs_check.c \
+	../hw/spiffs/spiffs_hydrogen.c \
 	../hw/spiflash/spi_flash.c \
 	../hw/usb_cdc.c \
 	../hw/usb/usb_bsp.c \
