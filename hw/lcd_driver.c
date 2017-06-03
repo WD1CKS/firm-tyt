@@ -692,8 +692,6 @@ void LCD_Init(void)
 	LCD_EnablePort();
 	FSMC_Conf();
 
-	pin_reset(pin_lcd_rst);
-	vTaskDelay(120);
 	pin_set(pin_lcd_rst);
 	vTaskDelay(120);
 
@@ -708,12 +706,11 @@ void LCD_Init(void)
 	LCD_WriteCommand(LCD_CMD_SETCYC);
 	LCD_WriteData(0x00);	// Column inversion, 89 clocks per line
 	LCD_WriteCommand(LCD_CMD_SLPOUT);
-	vTaskDelay(130);
+	vTaskDelay(5);
 	LCD_ReleasePort();
 	LCD_DrawRGB(wlarc_logo, 0, 0, 160, 128);
 	LCD_EnablePort();
 	LCD_WriteCommand(LCD_CMD_DISPON);
-	LCD_WriteCommand(LCD_CMD_RAMWR);
 	LCD_ReleasePort();
 }
 
