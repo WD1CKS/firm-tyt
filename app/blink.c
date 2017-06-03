@@ -111,7 +111,7 @@ led_set(int red, int green)
 	LCD_Printf(&lcd, "Batt: %d   \n", val);
 	val = BATT2_Read();
 	lcd.x = 0;
-	LCD_Printf(&lcd, "Batt2: %d   \n", val);
+	LCD_Printf(&lcd, "Batt2: %d   \n\n", val);
 	LCD_Printf(&lcd, "SPI ID: %08x\n", sFLASH_ReadID());
 	uint8_t sdat[10];
 	sFLASH_ReadBuffer(sdat, 0x100000, 10);
@@ -164,6 +164,15 @@ static void output_main(void* machtnichts __attribute__((unused))) {
 	vTaskDelay(250);
 	LCD_DrawRGBTransparent(wlarc_logo, 0, 0, 160, 128, 65535);
 	vTaskDelay(1000);
+	lcd.x = 0;
+	lcd.y = 72;
+	lcd.fg_color = LCD_COLOR_RED;
+	LCD_DrawString(&lcd, "Red ");
+	lcd.fg_color = LCD_COLOR_GREEN;
+	LCD_DrawString(&lcd, "Green ");
+	lcd.fg_color = LCD_COLOR_BLUE;
+	LCD_DrawString(&lcd, "Blue ");
+        lcd.fg_color = LCD_COLOR_BLACK;
 
 	for(;;) {
 		led_set(get_red_state(), PTT_Read());
