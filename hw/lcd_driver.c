@@ -60,16 +60,6 @@ LCD_WritePixels( uint16_t wColor, int nRepeats )
 		LCD_WritePixel(wColor);
 }
 
-__attribute__ ((noinline))
-void
-LCD_ShortDelay(void) // for ST7735 chip sel
-{
-	int i=4;  // <- minimum for a clean timing between /LCD_WR and /LCD_CS
-	while(i--) {
-		asm("NOP"); // don't allow GCC to optimize this away !
-	}
-}
-
 void
 LimitInteger( int *piValue, int min, int max)
 {
@@ -688,13 +678,11 @@ LCD_EnablePort(void)
 		LCD_Enabled = LCD_ENABLED;
 	}
 	pin_reset(pin_lcd_cs);
-	LCD_ShortDelay();	// TODO: Is this needed?
 }
 
 void
 LCD_ReleasePort(void)
 {
-	LCD_ShortDelay();	// TODO: Is this needed?
 	pin_set(pin_lcd_cs);
 	xSemaphoreGive(LCD_Mutex);
 }
