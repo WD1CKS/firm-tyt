@@ -16,6 +16,7 @@
 #include "gpio.h"
 #include "lcd_driver.h"   // constants + API prototypes for the *alternative* LCD driver (no "gfx")
 #include "task.h"
+#include "spi_flash.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_fsmc.h"
 #include "stm32f4xx_rcc.h"
@@ -684,6 +685,9 @@ LCD_ReleasePort(void)
 extern uint16_t wlarc_logo[20480];
 void LCD_Init(void)
 {
+	uint8_t config;
+
+	sFLASH_ReadBuffer(&config, 0x211d, 1);
 	LCD_Mutex = xSemaphoreCreateMutex();
 	RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FSMC, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
@@ -698,11 +702,20 @@ void LCD_Init(void)
 	LCD_WriteCommand(LCD_CMD_COLMOD);
 	LCD_WriteData(0x05);	// 16bpp
 	LCD_WriteCommand(LCD_CMD_MADCTL);
-#ifdef MD_390
-	LCD_WriteData(0x60);	// Was 0xc8
-#else
-	LCD_WriteData(0xa8);	// Was 0x08
-#endif
+	switch (config & 3) {
+	case 0x00:	/* MD-380? */
+		LCD_WriteData(0xa0);
+		break;
+	case 0x01:	/* MD-390 */
+		LCD_WriteData(0x60);
+		break;
+	case 0x02:	/* ??? */
+		LCD_WriteData(0xa8);
+		break;
+	case 0x03:	/* ??? */
+		LCD_WriteData(0xa7);
+		break;
+	}
 	LCD_WriteCommand(LCD_CMD_SETCYC);
 	LCD_WriteData(0x00);	// Column inversion, 89 clocks per line
 	LCD_WriteCommand(LCD_CMD_SLPOUT);

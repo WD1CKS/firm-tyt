@@ -37,9 +37,6 @@ SRCS=	blink.c \
   ASFLAGS=	-Wa,-a
   REDIR=	> firm-tyt.lst
 .endif
-.ifdef MD_390
-  CPPFLAGS+=	-DMD_390
-.endif
 CC=		arm-none-eabi-gcc
 AR=		arm-none-eabi-ar rcu
 OBJCOPY=	arm-none-eabi-objcopy
