@@ -64,6 +64,8 @@ get_red_state()
 static void
 led_set(int red, int green)
 {
+	static uint8_t secreg = 0x1d;
+	uint8_t sr;
 	static int last_state = -1;
 	static char enc[] = "encoder: 00, ";
 	char kp[14];
@@ -114,14 +116,24 @@ led_set(int red, int green)
 	LCD_Printf(&lcd, "Batt2: %d   \n\n", val);
 	LCD_Printf(&lcd, "SPI ID: %08x\n", sFLASH_ReadID());
 	uint8_t sdat[10];
-	sFLASH_ReadBuffer(sdat, 0x100000, 10);
-	LCD_Printf(&lcd, "SPI DAT: %10.10s\n", sdat);
+	sFLASH_ReadBuffer(sdat, 0x100000, 6);
+	LCD_Printf(&lcd, "SPI DAT: %6.6s\n", sdat);
 	key = get_key();
 	if (key) {
 		if (key == '~')
 			pin_toggle(pin_lcd_bl);
 		if (key == 'M')
 			LCD_DrawRGBTransparent(wlarc_logo, 0, 0, 160, 128, 65535);
+		if (key == KEY_UP || key == KEY_DOWN) {
+			if (key == KEY_UP)
+				secreg++;
+			else
+				secreg--;
+			lcd.x = 0;
+			lcd.y = 96;
+			sFLASH_ReadSecurityBuffer(&sr, 0x3000 | secreg, 1);
+			LCD_Printf(&lcd, "SecReg 0x%02X=0x%02x", secreg, sr);
+		}
 		lcd.x = 0;
 		sprintf(kp, "%d (%c)\n", key, isprint(key)?key:'.');
 		usb_cdc_write(kp, 11);
@@ -139,6 +151,8 @@ led_set(int red, int green)
 }
 
 static void output_main(void* machtnichts __attribute__((unused))) {
+	uint8_t sr;
+
 	led_setup();
         LCD_Init();
         LCD_InitContext(&lcd);
@@ -173,7 +187,10 @@ static void output_main(void* machtnichts __attribute__((unused))) {
 	lcd.fg_color = LCD_COLOR_BLUE;
 	LCD_DrawString(&lcd, "Blue ");
         lcd.fg_color = LCD_COLOR_BLACK;
-
+        lcd.x = 0;
+        lcd.y = 96;
+        sFLASH_ReadSecurityBuffer(&sr, 0x301d, 1);
+        LCD_Printf(&lcd, "SecReg 0x1D=0x%02x", sr);
 	for(;;) {
 		led_set(get_red_state(), PTT_Read());
 		vTaskDelay(50);
