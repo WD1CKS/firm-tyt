@@ -147,6 +147,8 @@
 void sFLASH_DeInit(void);
 void sFLASH_Init(void);
 void sFLASH_EraseSector(uint32_t SectorAddr);
+void sFLASH_Erase32KBlock(uint32_t SectorAddr);
+void sFLASH_Erase64KBlock(uint32_t SectorAddr);
 #if 0
 void sFLASH_EraseBulk(void);
 #endif

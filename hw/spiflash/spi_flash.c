@@ -123,7 +123,7 @@ void sFLASH_Init(void)
   * @param  SectorAddr: address of the sector to erase.
   * @retval None
   */
-void sFLASH_EraseSector(uint32_t SectorAddr)
+static void sFLASH_EraseCMD(uint32_t SectorAddr, uint8_t cmd)
 {
   /*!< Send write enable instruction */
   sFLASH_WriteEnable();
@@ -131,8 +131,8 @@ void sFLASH_EraseSector(uint32_t SectorAddr)
   /*!< Sector Erase */
   /*!< Select the FLASH: Chip Select low */
   sFLASH_CS_LOW();
-  /*!< Send Sector Erase instruction */
-  sFLASH_SendByte(sFLASH_CMD_SE);
+  /*!< Send Erase instruction */
+  sFLASH_SendByte(cmd);
   /*!< Send SectorAddr high nibble address byte */
   sFLASH_SendByte((SectorAddr & 0xFF0000) >> 16);
   /*!< Send SectorAddr medium nibble address byte */
@@ -144,6 +144,36 @@ void sFLASH_EraseSector(uint32_t SectorAddr)
 
   /*!< Wait the end of Flash writing */
   sFLASH_WaitForWriteEnd();
+}
+
+/**
+  * @brief  Erases the specified FLASH sector.
+  * @param  SectorAddr: address of the sector to erase.
+  * @retval None
+  */
+void sFLASH_EraseSector(uint32_t SectorAddr)
+{
+  sFLASH_EraseCMD(SectorAddr, sFLASH_CMD_SE);
+}
+
+/**
+  * @brief  Erases the specified FLASH 32K block.
+  * @param  SectorAddr: address of the block to erase.
+  * @retval None
+  */
+void sFLASH_Erase32KBlock(uint32_t SectorAddr)
+{
+  sFLASH_EraseCMD(SectorAddr, sFLASH_CMD_BE32);
+}
+
+/**
+  * @brief  Erases the specified FLASH 64K block.
+  * @param  SectorAddr: address of the block to erase.
+  * @retval None
+  */
+void sFLASH_Erase64KBlock(uint32_t SectorAddr)
+{
+  sFLASH_EraseCMD(SectorAddr, sFLASH_CMD_BE64);
 }
 
 /**
