@@ -2,13 +2,13 @@
   ******************************************************************************
   * @file    usbd_desc.h
   * @author  MCD Application Team
-  * @version V1.1.0
-  * @date    19-March-2012
+  * @version V1.2.0
+  * @date    09-November-2015
   * @brief   header file for the usbd_desc.c file
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT 2012 STMicroelectronics</center></h2>
+  * <h2><center>&copy; COPYRIGHT 2015 STMicroelectronics</center></h2>
   *
   * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
   * You may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@
 #define __USB_DESC_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "usbd_def.h"
+#include "usbd_req.h"
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
   * @{
@@ -52,6 +52,20 @@
 #define USB_ENDPOINT_DESCRIPTOR_TYPE            0x05
 #define USB_SIZ_DEVICE_DESC                     18
 #define USB_SIZ_STRING_LANGID                   4
+
+#if !defined (USE_STM3210C_EVAL)
+#define         DEVICE_ID1          (0x1FFF7A10)
+#define         DEVICE_ID2          (0x1FFF7A14)
+#define         DEVICE_ID3          (0x1FFF7A18)
+
+#else
+#define         DEVICE_ID1          (0x1FFFF7E8)
+#define         DEVICE_ID2          (0x1FFFF7EA)
+#define         DEVICE_ID3          (0x1FFFF7EC)  
+#endif
+
+
+#define  USB_SIZ_STRING_SERIAL       0x1A
 
 /**
   * @}

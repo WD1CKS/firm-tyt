@@ -26,6 +26,8 @@
 #include "usb/usbd_desc.h"
 #include "usb/usbd_cdc_vcp.h"
 
+extern CDC_IF_Prop_TypeDef VCP_fops;
+
 /** USB device handle initialized in "usb_cdc_init". */
 __ALIGN_BEGIN USB_OTG_CORE_HANDLE g_usb_dev __ALIGN_END;
 
@@ -41,14 +43,14 @@ void OTG_FS_IRQHandler(void)
 
 void usb_cdc_init(void)
 {
-  VCP_Init();
+  VCP_QInit();
   USBD_Init(&g_usb_dev, USB_OTG_FS_CORE_ID, &USR_desc,
             &USBD_CDC_cb, &USR_cb);
 }
 
 ssize_t usb_cdc_write(const void *buf, size_t len)
 {
-  return VCP_Write((uint8_t *)buf, len);
+  return APP_FOPS.pIf_DataTx((uint8_t *)buf, len);
 }
 
 ssize_t usb_cdc_read_timeout(void *buf, size_t len, uint32_t timeout)

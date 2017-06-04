@@ -6,6 +6,7 @@ SRCS=	blink.c \
 	../hw/gpio.c \
 	../hw/lcd_driver.c \
 	../hw/led.c \
+	../hw/spiffs/spiffs_port.c \
 	../hw/spiffs/spiffs_cache.c \
 	../hw/spiffs/spiffs_gc.c \
 	../hw/spiffs/spiffs_nucleus.c \
@@ -53,6 +54,8 @@ CPPFLAGS+=	-DUSE_USB_OTG_FS \
 		-I../FreeRTOS/Source/portable/GCC/ARM_CM4F \
 		-Ilua/src \
 		-I../stdperiph \
+		-I../hw/stmusb/Class/CDC/Inc \
+		-I../hw/stmusb/Core/Inc \
 		-I../hw \
 		-I../hw/spiflash
 CFLAGS=		-Wall \

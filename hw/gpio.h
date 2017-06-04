@@ -214,6 +214,9 @@ DECL_BANK(I);
 
 
 /* Pin aliases */
+#define pin_usb_vbus pin_a9
+#define pin_usb_dm pin_a11
+#define pin_usb_dp pin_a12
 #define pin_ecn3 pin_b10
 #define pin_ecn0 pin_b11
 #define pin_lcd_bl pin_c6
